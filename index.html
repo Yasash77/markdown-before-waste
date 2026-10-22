@@ -15,20 +15,37 @@
       <h1>Markdown Before Waste</h1>
       <p class="sub">Near-expiry pricing simulator · one store · 20 perishables · 30 days · <span class="tag">synthetic data</span></p>
     </div>
+    <div class="who" id="who" hidden><span id="whoLabel"></span><button class="chip" id="switchRole">Switch role</button></div>
   </div>
   <nav class="tabs" role="tablist">
-    <button class="tab active" data-tab="dash">Dashboard</button>
-    <button class="tab" data-tab="product">Per-product</button>
-    <button class="tab" data-tab="optim">Optimiser</button>
-    <button class="tab" data-tab="robust">Robustness</button>
-    <button class="tab" data-tab="deals">Today's deals</button>
-    <button class="tab" data-tab="assume">Assumptions</button>
+    <button class="tab active" data-tab="dash" data-roles="manager analyst">Dashboard</button>
+    <button class="tab" data-tab="product" data-roles="manager analyst">Per-product</button>
+    <button class="tab" data-tab="optim" data-roles="manager analyst">Optimiser</button>
+    <button class="tab" data-tab="robust" data-roles="manager analyst">Robustness</button>
+    <button class="tab" data-tab="deals" data-roles="manager staff shopper">Today's deals</button>
+    <button class="tab" data-tab="assume" data-roles="manager analyst">Assumptions</button>
   </nav>
 </header>
 
+<!-- Role sign-in (demo: no passwords, static site) -->
+<div class="login" id="login" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="login-card">
+    <div class="logo" aria-hidden="true">₹↓</div>
+    <h2 id="loginTitle">Sign in to Markdown Before Waste</h2>
+    <p class="hint">Choose your role. Each role sees only the screens and actions it needs.</p>
+    <div class="roles">
+      <button class="role" data-role="manager"><span class="ri">🧑‍💼</span><b>Store manager</b><span>Sets markdown rules, applies recommendations, publishes the rule to the store. Full access.</span></button>
+      <button class="role" data-role="analyst"><span class="ri">📊</span><b>Analyst</b><span>Explores scenarios, runs the optimiser, checks robustness, exports CSV. Can't publish or apply.</span></button>
+      <button class="role" data-role="staff"><span class="ri">🏷️</span><b>Shelf staff</b><span>Sees today's markdown list for the published rule and prints shelf labels.</span></button>
+      <button class="role" data-role="shopper"><span class="ri">🛒</span><b>Shopper</b><span>Browses today's reduced items. No costs, stock or internal data.</span></button>
+    </div>
+    <p class="demo-note">Demo sign-in with no passwords. This is a static prototype: role views separate what each person sees, but they are not a security boundary.</p>
+  </div>
+</div>
+
 <main>
   <!-- Controls shared by all tabs -->
-  <section class="panel controls" aria-label="Policy controls">
+  <section class="panel controls" id="controls" aria-label="Policy controls">
     <div class="ctl-group">
       <h3>Markdown rule <span class="muted">(your policy)</span></h3>
       <div class="presets">
@@ -48,7 +65,7 @@
       <label>Overstock (order-up-to) <output id="o_over"></output><input type="range" id="over" min="1" max="1.5" step="0.05" value="1.2"></label>
       <label class="check"><input type="checkbox" id="floor"> Never price below cost</label>
       <p class="hint">Both policies run on the same seed and face the same shoppers. Seed is shown on every result so judges can reproduce it.</p>
-      <div class="share"><button class="chip" id="copyLink">🔗 Copy link to this exact scenario</button><span id="copyMsg" class="muted"></span></div>
+      <div class="share"><button class="chip" id="copyLink">🔗 Copy link to this exact scenario</button><button class="chip pub" id="publishBtn" title="Saved in this browser (no server)">📢 Publish this rule to the store</button><span id="copyMsg" class="muted"></span></div>
     </div>
   </section>
 
@@ -129,6 +146,7 @@
       <div class="row">
         <h3 style="margin:0">Today's deals</h3>
         <button class="chip" id="printBtn">🖨 Print shelf labels</button>
+        <span class="muted" id="storeRule"></span>
         <label class="inline">Day <input type="range" id="dealDay" min="0" max="29" value="9"> <output id="o_day"></output></label>
       </div>
       <p class="hint">Shopper-facing page generated from the simulation for the chosen day: what is on the reduced shelf this morning.</p>
@@ -161,7 +179,7 @@
 </footer>
 
 <script src="vendor/chart.umd.min.js"></script>
-<script src="js/sim.js?v=3"></script>
-<script src="js/app.js?v=3"></script>
+<script src="js/sim.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
 </body>
 </html>

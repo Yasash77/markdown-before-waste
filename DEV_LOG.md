@@ -33,6 +33,11 @@ Key decisions, experiments and rejected approaches, in order.
   - Shop floor: today's markdown list, linked to the shelf labels.
 - **Guardrail added after testing:** the first version suggested "order less milk" (+₹6.5k) even though it raised empty-shelf lost sales 4×. That's bad advice for a staple, because the model doesn't price lost customer goodwill. Ordering tips are now rejected if lost sales rise more than 50% (or 10 units).
 
+## Role-based views
+- Added a sign-in screen with four roles: store manager, analyst, shelf staff, shopper. Each role gets its own tabs and actions (config in `ROLES` in `app.js`). The manager publishes a rule, and staff and shoppers always see the published rule (or the optimised default if none is published).
+- **Decision:** no passwords or real auth. The site is static (GitHub Pages) with no backend, so any client-side password would be fake security. The UI says so plainly. Real auth (e.g. a hosted identity provider) is a next step.
+- Bug found while testing: a `#role=staff` link was ignored because `render()` rewrote the URL hash before the role was read. The role is now read first.
+
 ## Results honesty
 - The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
 - I report lost sales (stock-outs) even though they get worse under markdowns.

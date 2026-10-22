@@ -58,6 +58,9 @@
     $('dealDay').addEventListener('input', renderDeals);
     $('runOpt').addEventListener('click', () => runOptimiser());
     $('csvBtn').addEventListener('click', downloadCSV);
+    document.querySelectorAll('.role').forEach(b => b.addEventListener('click', () => signIn(b.dataset.role)));
+    $('switchRole').addEventListener('click', showLogin);
+    $('publishBtn').addEventListener('click', publishRule);
     $('copyPlan').addEventListener('click', async (e) => {
       try { await navigator.clipboard.writeText(planText); e.target.textContent = 'Copied ✓'; }
       catch (err) { e.target.textContent = 'Copy failed'; }
@@ -177,6 +180,7 @@
     const q = new URLSearchParams({ d2: Math.round(t.d2 * 100), d1: Math.round(t.d1 * 100), d0: Math.round(t.d0 * 100),
       seed: state.seed, resp: state.resp, over: state.over, floor: state.floor ? 1 : 0, opt: state.byCategory ? 1 : 0 });
     if (state.byCategory) q.set('cats', JSON.stringify(state.byCategory));
+    if (role) q.set('role', role);
     try { history.replaceState(null, '', '#' + q.toString()); } catch (e) { /* file:// or sandbox */ }
   }
   function readHash() {
@@ -387,7 +391,7 @@
     return planCache.opt;
   }
   function renderPlan() {
-    if (!last) return;
+    if (!last || !roleCfg().tabs.includes('dash')) return;
     const pol = policy(), P = params(), cmp = last.cmp;
     const money = [], other = [];
     const perMonth = (x) => sgn(x, inr) + '/mo';
@@ -480,6 +484,8 @@
       li.className = 'act p-' + a.pri;
       const imp = a.impact ? `<span class="imp">${a.impLabel || perMonth(a.impact)}</span>` : '';
       li.innerHTML = `<div class="ic">${a.icon}</div><div><div class="t">${a.title}</div><div class="d">${a.detail}</div></div><div class="side">${imp}</div>`;
+      if (a.btn && !roleCfg().apply && a.btn.label !== 'Shelf labels') a.btn = null;
+      if (a.btn && a.btn.label === 'Shelf labels' && !roleCfg().tabs.includes('deals')) a.btn = null;
       if (a.btn) {
         const b = document.createElement('button'); b.className = 'chip'; b.textContent = a.btn.label;
         b.addEventListener('click', a.btn.fn); li.querySelector('.side').appendChild(b);
@@ -542,8 +548,60 @@
     $('deals').innerHTML = list.map(x => `<div class="deal"><span class="off">${pct(x.discount)} OFF</span>
       <div class="cat">${x.category}</div><div class="name">${x.name}</div>
       <div><span class="price">${inr(x.price)}</span><span class="was">${inr(x.basePrice)}</span></div>
-      <div class="meta">${x.units} on the shelf · ${x.daysLeft === 0 ? 'best before today' : x.daysLeft === 1 ? 'best before tomorrow' : 'best before in ' + x.daysLeft + ' days'}</div></div>`).join('');
+      <div class="meta">${role === 'shopper' ? '' : x.units + ' on the shelf · '}${x.daysLeft === 0 ? 'best before today' : x.daysLeft === 1 ? 'best before tomorrow' : 'best before in ' + x.daysLeft + ' days'}</div></div>`).join('');
   }
+
+  // ---------- roles (demo sign-in, no passwords: views are not a security boundary) ----------
+  const ROLES = {
+    manager: { label: 'Store manager', icon: '🧑‍💼', tabs: ['dash', 'product', 'optim', 'robust', 'deals', 'assume'], controls: true, apply: true, publish: true, print: true },
+    analyst: { label: 'Analyst', icon: '📊', tabs: ['dash', 'product', 'optim', 'robust', 'assume'], controls: true, apply: false, publish: false, print: false },
+    staff: { label: 'Shelf staff', icon: '🏷️', tabs: ['deals'], controls: false, apply: false, publish: false, print: true },
+    shopper: { label: 'Shopper', icon: '🛒', tabs: ['deals'], controls: false, apply: false, publish: false, print: false },
+  };
+  let role = null;
+  function roleCfg() { return ROLES[role] || ROLES.manager; }
+  const PUB_KEY = 'mbw_published_rule';
+  function readPublished() { try { return JSON.parse(localStorage.getItem(PUB_KEY)); } catch (e) { return null; } }
+  function publishRule() {
+    const rec = { name: policy().name, tiers: state.tiers, byCategory: state.byCategory, seed: state.seed, at: new Date().toISOString() };
+    try { localStorage.setItem(PUB_KEY, JSON.stringify(rec)); $('copyMsg').textContent = 'Published. Shelf staff and shoppers on this browser now see this rule.'; }
+    catch (e) { $('copyMsg').textContent = 'Could not save (browser storage blocked).'; }
+    setTimeout(() => { $('copyMsg').textContent = ''; }, 5000);
+  }
+  function useStoreRule() {
+    // Staff and shoppers always see the rule the manager published (or the optimised default).
+    const pub = readPublished();
+    if (pub && pub.tiers) {
+      state.tiers = pub.tiers; state.byCategory = pub.byCategory || null; state.seed = pub.seed || state.seed;
+      $('storeRule').textContent = `Store rule: ${pub.name}, published by the store manager ${new Date(pub.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}.`;
+      schedule();
+    } else {
+      $('storeRule').textContent = 'Loading the store rule…';
+      setTimeout(() => {
+        state.byCategory = Object.assign({}, optimisedTiers());
+        $('storeRule').textContent = 'Store rule: optimised per category (default: no rule published yet).';
+        schedule();
+      }, 30);
+    }
+  }
+  function signIn(r) {
+    if (!ROLES[r]) return;
+    role = r; const cfg = ROLES[r];
+    try { sessionStorage.setItem('mbw_role', r); } catch (e) { /* storage blocked */ }
+    document.body.dataset.role = r;
+    if (r === 'shopper') renderDeals();
+    $('login').hidden = true;
+    $('who').hidden = false; $('whoLabel').textContent = `${cfg.icon} ${cfg.label}`;
+    document.querySelectorAll('.tab').forEach(t => { t.hidden = !cfg.tabs.includes(t.dataset.tab); });
+    const active = document.querySelector('.tab.active');
+    if (!active || active.hidden) document.querySelector(`.tab[data-tab="${cfg.tabs[0]}"]`).click();
+    $('controls').hidden = !cfg.controls;
+    $('publishBtn').hidden = !cfg.publish;
+    $('printBtn').hidden = !cfg.print;
+    if (cfg.controls) $('storeRule').textContent = '';
+    if (!cfg.controls) useStoreRule(); else schedule();
+  }
+  function showLogin() { $('login').hidden = false; const b = document.querySelector('.role'); if (b) b.focus(); }
 
   // ---------- static tables ----------
   function renderStatic() {
@@ -555,11 +613,15 @@
 
   // ---------- boot ----------
   bindControls(); renderStatic();
+  const linkRole = new URLSearchParams(location.hash.slice(1)).get('role'); // read before render() rewrites the hash
   const fromLink = readHash();
   syncControls();
   const t0 = state.tiers;
   if (t0.d2 === 0.2 && t0.d1 === 0.4 && t0.d0 === 0.5) document.querySelector('.chip[data-preset="naive"]').classList.add('on');
   render();
   if (fromLink === 'opt') runOptimiser(true);
+  let startRole = linkRole;
+  if (!ROLES[startRole]) { try { startRole = sessionStorage.getItem('mbw_role'); } catch (e) { startRole = null; } }
+  if (ROLES[startRole]) signIn(startRole); else showLogin();
   window.__MBW_STATE = state; // for debugging in the console
 })();

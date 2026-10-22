@@ -51,6 +51,19 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 | Extra: printable shelf-edge labels from the deals page | *Today's deals* → "Print shelf labels" |
 | Extra: **Recommended next steps** action planner. Every suggestion (switch pricing rule, soften markdowns on a category, order more or less of a product, pilot first, today's markdowns) is re-simulated on 10 seeds before it is shown and ranked by ₹ impact, with one-click Apply and a "Copy action plan" button | Dashboard, below the KPIs |
 
+### Roles (demo sign-in)
+
+The app opens on a role picker, and each role sees only its own screens and actions:
+
+| Role | Sees | Can do |
+|---|---|---|
+| 🧑‍💼 Store manager | Every tab | Change the rule, apply recommendations, **publish the rule to the store**, print labels |
+| 📊 Analyst | Dashboard, Per-product, Optimiser, Robustness, Assumptions | Explore scenarios, run the optimiser, export CSV. Can't apply or publish |
+| 🏷️ Shelf staff | Today's deals only, for the **published** rule | Print shelf labels |
+| 🛒 Shopper | Today's deals only | Browse reduced items. No stock counts, costs or internal data |
+
+"Switch role" in the header changes role. A link can open straight into a role (e.g. `#role=staff`). The published rule is saved in the browser's `localStorage`. **There are no passwords:** this is a static prototype with no backend, so role views separate what each person sees but are not a security boundary. Real accounts would need a server-side auth provider.
+
 ## 4. Architecture
 
 ```mermaid
