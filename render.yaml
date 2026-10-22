@@ -1,0 +1,13 @@
+# Render Blueprint: deploys the app as a free static site (no server, no build step).
+# The app is plain HTML/CSS/JS, so Render just serves the repository root.
+services:
+  - type: web
+    name: markdown-before-waste
+    runtime: static
+    buildCommand: echo "No build step - static site"
+    staticPublishPath: .
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
