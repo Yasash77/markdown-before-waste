@@ -26,7 +26,7 @@
 
   // ---------- current policy & params ----------
   function policy() {
-    if (state.byCategory) return { name: 'Optimised per category', tiers: state.tiers, byCategory: state.byCategory };
+    if (state.byCategory) return { name: 'Recommended category rules', tiers: state.tiers, byCategory: state.byCategory };
     return { name: 'Markdown rule ' + tierStr(state.tiers), tiers: state.tiers };
   }
   function params(over) {
@@ -42,8 +42,8 @@
     $('presetOpt').classList.toggle('on', !!state.byCategory);
     for (const k of ['d2', 'd1', 'd0']) $(k).closest('label').style.opacity = state.byCategory ? 0.45 : 1;
     $('ruleNote').innerHTML = state.byCategory
-      ? 'Using the optimiser’s rule per category: ' + Object.entries(state.byCategory).map(([c, t]) => `<b>${c}</b> ${tierStr(t)}`).join(' · ') + '. Move a slider to go back to one rule for the whole store.'
-      : 'Discount applied to a batch by how many days it has left. A batch is never marked down on its arrival day.';
+      ? 'Recommended rule per category (2 days / 1 day / last day): ' + Object.entries(state.byCategory).map(([c, t]) => `<b>${c}</b> ${tierStr(t)}`).join(' · ') + '. Moving a discount slider switches back to one rule for the whole store.'
+      : `Current rule: <b>${Math.round(state.tiers.d2 * 100)}%</b> off with 2 days left, <b>${Math.round(state.tiers.d1 * 100)}%</b> with 1 day left, <b>${Math.round(state.tiers.d0 * 100)}%</b> on the last day. Fresh deliveries are never discounted.`;
   }
   function bindControls() {
     for (const k of ['d2', 'd1', 'd0']) $(k).addEventListener('input', (e) => {
@@ -118,29 +118,38 @@
     schedulePlan();
   }
 
-  function kpi(label, from, to, fmt, goodWhenLower, avgText) {
+  // goal: 'lower' (less is better), 'higher' (more is better) or 'neutral' (direction alone is not good or bad)
+  function kpi(label, from, to, fmt, goal, avgText) {
     const d = to - from;
     const rel = from ? d / Math.abs(from) : 0;
-    const good = goodWhenLower ? d < 0 : d > 0;
-    const cls = Math.abs(rel) < 0.005 ? '' : good ? 'good' : 'bad';
+    const flat = Math.abs(rel) < 0.005;
+    const good = goal === 'lower' ? d < 0 : d > 0;
+    const cls = flat || goal === 'neutral' ? 'neutral' : good ? 'good' : 'bad';
+    const arrow = flat ? '→' : d > 0 ? '▲' : '▼';
+    const word = flat ? 'no change' : goal === 'neutral' ? (d > 0 ? 'higher' : 'lower') : good ? 'better' : 'worse';
     return `<div class="kpi"><div class="label">${label}</div>
-      <div class="vals"><span class="from">${fmt(from)}</span><span class="to">${fmt(to)}</span>
-      <span class="delta ${cls}">${sgn(rel * 100, (x) => x.toFixed(1) + '%')}</span></div>
+      <div class="big">${fmt(to)}</div>
+      <div><span class="delta ${cls}">${arrow} ${sgn(rel * 100, (x) => x.toFixed(1) + '%')} · ${word}</span></div>
+      <div class="base">Fixed price: <b>${fmt(from)}</b></div>
       <div class="avg">${avgText}</div></div>`;
   }
   function renderKPIs(f, r, c) {
     const F = f.totals, R = r.totals;
     const avg = (k, fmt) => `10-seed mean: ${fmt(c.fixed[k].mean)} → ${fmt(c.policy[k].mean)}`;
+    const n = (x) => Math.round(x).toLocaleString('en-IN');
     $('kpis').innerHTML = [
-      kpi('Units wasted', F.wasted, R.wasted, (x) => Math.round(x).toLocaleString('en-IN'), true, avg('wasted', (x) => Math.round(x))),
-      kpi('₹ thrown away (at cost)', F.wasteCost, R.wasteCost, inrK, true, avg('wasteCost', inrK) + ` · waste rate ${pct(c.fixed.wastePct.mean, 1)} → ${pct(c.policy.wastePct.mean, 1)}`),
-      kpi('Revenue', F.revenue, R.revenue, inrK, false, avg('revenue', inrK)),
-      kpi('Margin (gross profit)', F.margin, R.margin, inrK, false, avg('margin', inrK)),
-      kpi('Lost sales (empty shelf)', F.lostSales, R.lostSales, (x) => Math.round(x).toLocaleString('en-IN'), true, avg('lostSales', (x) => Math.round(x))),
+      kpi('Units wasted', F.wasted, R.wasted, n, 'lower', avg('wasted', (x) => Math.round(x))),
+      kpi('₹ thrown away (at cost)', F.wasteCost, R.wasteCost, inrK, 'lower', avg('wasteCost', inrK) + ` · waste rate ${pct(c.fixed.wastePct.mean, 1)} → ${pct(c.policy.wastePct.mean, 1)}`),
+      kpi('Gross margin', F.margin, R.margin, inrK, 'higher', avg('margin', inrK)),
+      kpi('Revenue', F.revenue, R.revenue, inrK, 'neutral', avg('revenue', inrK) + ' · judge with margin'),
+      kpi('Lost sales (empty shelf)', F.lostSales, R.lostSales, n, 'lower', avg('lostSales', (x) => Math.round(x))),
     ].join('');
-    $('seedline').innerHTML = `Seed <b>${state.seed}</b> · struck-through = fixed price, bold = <b>${policy().name}</b>. ` +
+    $('seedline').innerHTML = `30-day simulation · seed <b>${state.seed}</b> · big number = <b>${policy().name}</b>, “Fixed price” = baseline. ` +
       `Over 10 seeds: waste <b class="${c.wasteReductionPct >= 0 ? 'good' : 'bad'}">${sgn(-c.wasteReductionPct, (x) => x.toFixed(1) + '%')}</b>, ` +
       `margin <b class="${c.marginChange.mean >= 0 ? 'good' : 'bad'}">${sgn(c.marginChange.mean, inr)}</b> (${sgn(c.marginChangePct, (x) => x.toFixed(1) + '%')}, sd ${inr(c.marginChange.sd)}).`;
+    const wDir = R.wasted <= F.wasted ? 'falls' : 'rises', mDir = R.margin >= F.margin ? 'rises' : 'falls';
+    $('chartTakeaway').innerHTML = `<b>Takeaway (seed ${state.seed}):</b> waste ${wDir} from ${n(F.wasted)} to ${n(R.wasted)} units, and margin ${mDir} from ${inrK(F.margin)} to ${inrK(R.margin)}` +
+      (wDir === 'falls' && mDir === 'falls' ? ', so this rule buys less waste with margin.' : wDir === 'falls' ? ', so this rule wins on both.' : '.');
   }
 
   // ---------- plain-English verdict ----------
@@ -165,7 +174,7 @@
       const perUnit = unitsSaved > 0 ? -dm / unitsSaved : 0;
       cls = 'trade'; verdict = `⚖️ Trade-off: waste ${sgn(-wr, (x) => x.toFixed(0) + '%')}, but margin ${sgn(dmp, (x) => x.toFixed(1) + '%')} (${sgn(dm, inr)} a month).`;
       body = `You are paying about <b>${inr(perUnit)} of margin for every unit kept out of the bin</b>, mostly because full-price shoppers grab the discounted units.` +
-        (worst && worst.dm < 0 ? ` Hardest hit this run: ${worst.name} (${sgn(worst.dm, inr)}).` : '') + ' Try smaller, later discounts, or press <b>Optimised per category</b>.';
+        (worst && worst.dm < 0 ? ` Hardest hit this run: ${worst.name} (${sgn(worst.dm, inr)}).` : '') + ' Try smaller, later discounts, or press <b>★ Recommended category rules</b>.';
     } else {
       cls = 'lose'; verdict = `❌ Worse than fixed price: waste ${sgn(-wr, (x) => x.toFixed(0) + '%')}, margin ${sgn(dmp, (x) => x.toFixed(1) + '%')}.`;
       body = 'This rule does not reduce waste. Check the per-product view to see why.';
@@ -404,7 +413,7 @@
       const gain = m.margin.mean - cmp.policy.margin.mean;
       const dw = m.wasted.mean - cmp.policy.wasted.mean;
       if (gain > 200) money.push({ icon: '🎯', pri: 'high', impact: gain,
-        title: 'Switch to the optimised per-category markdown rules',
+        title: 'Switch to the recommended category rules',
         detail: `${Object.entries(opt).map(([c, t]) => `${c} ${tierStr(t)}`).join(' · ')}. Units wasted ${dw <= 0 ? 'fall' : 'rise'} by ${Math.abs(Math.round(dw))} a month compared with your current rule.`,
         btn: { label: 'Apply', fn: () => { state.byCategory = Object.assign({}, opt); clearPresets(); schedule(); } } });
     }
@@ -564,7 +573,7 @@
   function readPublished() { try { return JSON.parse(localStorage.getItem(PUB_KEY)); } catch (e) { return null; } }
   function publishRule() {
     const rec = { name: policy().name, tiers: state.tiers, byCategory: state.byCategory, seed: state.seed, at: new Date().toISOString() };
-    try { localStorage.setItem(PUB_KEY, JSON.stringify(rec)); $('copyMsg').textContent = 'Published. Shelf staff and shoppers on this browser now see this rule.'; }
+    try { localStorage.setItem(PUB_KEY, JSON.stringify(rec)); $('copyMsg').textContent = 'Saved as the store rule (demo: this browser only). Shelf staff and shoppers here now see it.'; }
     catch (e) { $('copyMsg').textContent = 'Could not save (browser storage blocked).'; }
     setTimeout(() => { $('copyMsg').textContent = ''; }, 5000);
   }
@@ -573,13 +582,13 @@
     const pub = readPublished();
     if (pub && pub.tiers) {
       state.tiers = pub.tiers; state.byCategory = pub.byCategory || null; state.seed = pub.seed || state.seed;
-      $('storeRule').textContent = `Store rule: ${pub.name}, published by the store manager ${new Date(pub.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}.`;
+      $('storeRule').textContent = `Store rule: ${pub.name}, saved by the store manager (demo, this browser) ${new Date(pub.at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}.`;
       schedule();
     } else {
       $('storeRule').textContent = 'Loading the store rule…';
       setTimeout(() => {
         state.byCategory = Object.assign({}, optimisedTiers());
-        $('storeRule').textContent = 'Store rule: optimised per category (default: no rule published yet).';
+        $('storeRule').textContent = 'Store rule: recommended category rules (default: no rule saved yet).';
         schedule();
       }, 30);
     }

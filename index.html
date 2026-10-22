@@ -36,7 +36,7 @@
     <div class="roles">
       <button class="role" data-role="manager"><span class="ri">🧑‍💼</span><b>Store manager</b><span>Sets markdown rules, applies recommendations, publishes the rule to the store. Full access.</span></button>
       <button class="role" data-role="analyst"><span class="ri">📊</span><b>Analyst</b><span>Explores scenarios, runs the optimiser, checks robustness, exports CSV. Can't publish or apply.</span></button>
-      <button class="role" data-role="staff"><span class="ri">🏷️</span><b>Shelf staff</b><span>Sees today's markdown list for the published rule and prints shelf labels.</span></button>
+      <button class="role" data-role="staff"><span class="ri">🏷️</span><b>Shelf staff</b><span>Sees today's markdown list for the saved store rule and prints shelf labels.</span></button>
       <button class="role" data-role="shopper"><span class="ri">🛒</span><b>Shopper</b><span>Browses today's reduced items. No costs, stock or internal data.</span></button>
     </div>
     <p class="demo-note">Demo sign-in with no passwords. This is a static prototype: role views separate what each person sees, but they are not a security boundary.</p>
@@ -45,28 +45,44 @@
 
 <main>
   <!-- Controls shared by all tabs -->
-  <section class="panel controls" id="controls" aria-label="Policy controls">
-    <div class="ctl-group">
-      <h3>Markdown rule <span class="muted">(your policy)</span></h3>
-      <div class="presets">
-        <button class="chip" data-preset="naive">Naïve 20 / 40 / 50 %</button>
-        <button class="chip" data-preset="gentle">Gentle 0 / 20 / 40 %</button>
-        <button class="chip" data-preset="optimised" id="presetOpt" title="Run the optimiser first">Optimised per category</button>
+  <section class="panel controls" id="controls" aria-label="Pricing strategy and settings">
+    <div class="policybar">
+      <div class="ctl-group">
+        <h3>Pricing strategy <span class="muted">(compared with fixed price)</span></h3>
+        <div class="presets">
+          <button class="chip" data-preset="naive" title="20% off with 2 days left, 40% with 1 day left, 50% on the last day">Aggressive discounts <span class="muted">20/40/50%</span></button>
+          <button class="chip" data-preset="gentle" title="0% with 2 days left, 20% with 1 day left, 40% on the last day">Gentle discounts <span class="muted">0/20/40%</span></button>
+          <button class="chip" data-preset="optimised" id="presetOpt" title="Runs the optimiser and applies the best rule for each category">★ Recommended category rules</button>
+        </div>
+        <p class="hint" id="ruleNote"></p>
       </div>
-      <label>2 days left <output id="o_d2"></output><input type="range" id="d2" min="0" max="70" step="5"></label>
-      <label>1 day left <output id="o_d1"></output><input type="range" id="d1" min="0" max="70" step="5"></label>
-      <label>Last day <output id="o_d0"></output><input type="range" id="d0" min="0" max="70" step="5"></label>
-      <p class="hint" id="ruleNote"></p>
     </div>
-    <div class="ctl-group">
-      <h3>Scenario</h3>
-      <label>Random seed <input type="number" id="seed" min="1" max="99999" value="42"></label>
-      <label>Shopper response to discounts <output id="o_resp"></output><input type="range" id="resp" min="0.25" max="2" step="0.25" value="1"></label>
-      <label>Overstock (order-up-to) <output id="o_over"></output><input type="range" id="over" min="1" max="1.5" step="0.05" value="1.2"></label>
-      <label class="check"><input type="checkbox" id="floor"> Never price below cost</label>
-      <p class="hint">Both policies run on the same seed and face the same shoppers. Seed is shown on every result so judges can reproduce it.</p>
-      <div class="share"><button class="chip" id="copyLink">🔗 Copy link to this exact scenario</button><button class="chip pub" id="publishBtn" title="Saved in this browser (no server)">📢 Publish this rule to the store</button><span id="copyMsg" class="muted"></span></div>
-    </div>
+    <details class="settings">
+      <summary>Fine-tune discounts and scenario settings</summary>
+      <div class="settings-grid">
+        <div class="ctl-group">
+          <h3>Discount by days left</h3>
+          <label>Discount with 2 days left <output id="o_d2"></output><input type="range" id="d2" min="0" max="70" step="5" aria-label="Discount with 2 days left"></label>
+          <label>Discount with 1 day left <output id="o_d1"></output><input type="range" id="d1" min="0" max="70" step="5" aria-label="Discount with 1 day left"></label>
+          <label>Discount on the last day <output id="o_d0"></output><input type="range" id="d0" min="0" max="70" step="5" aria-label="Discount on the last day"></label>
+        </div>
+        <div class="ctl-group">
+          <h3>Scenario</h3>
+          <label>Customer response to discounts <output id="o_resp"></output><input type="range" id="resp" min="0.25" max="2" step="0.25" value="1" aria-label="Customer response to discounts"></label>
+          <p class="hint tight">1.0× = base assumption; 0.5× = shoppers react half as strongly to a discount.</p>
+          <label>Extra stock buffer <output id="o_over"></output><input type="range" id="over" min="1" max="1.5" step="0.05" value="1.2" aria-label="Extra stock buffer"></label>
+          <p class="hint tight">1.2× = stock up to 120% of expected demand until the next delivery.</p>
+          <label class="check"><input type="checkbox" id="floor"> Prevent selling below purchase cost</label>
+          <label>Simulation seed <span class="muted">(advanced)</span> <input type="number" id="seed" min="1" max="99999" value="42"></label>
+          <p class="hint tight">Same seed = same shoppers for both policies, so every result is reproducible.</p>
+        </div>
+      </div>
+      <div class="share">
+        <button class="chip" id="copyLink">🔗 Copy link to this scenario</button>
+        <button class="chip pub" id="publishBtn" title="Demo: saved in this browser only, no server">💾 Save as store rule (demo)</button>
+        <span id="copyMsg" class="muted" role="status"></span>
+      </div>
+    </details>
   </section>
 
   <!-- DASHBOARD -->
@@ -82,13 +98,14 @@
       <p class="hint">Each step is tested in the simulator on 10 seeds against your current setup before it is shown. Ordering tips are only shown if empty-shelf lost sales rise by no more than 50% (or 10 units). Estimates use synthetic data, so pilot a change before rolling it out.</p>
       <ol class="actlist" id="actions"><li class="muted">Working out suggestions…</li></ol>
     </section>
+    <p class="takeaway" id="chartTakeaway"></p>
     <div class="grid2">
       <div class="panel"><h3>Units wasted per day</h3><div class="chart"><canvas id="cWaste"></canvas></div></div>
       <div class="panel"><h3>Cumulative margin (₹)</h3><div class="chart"><canvas id="cMargin"></canvas></div></div>
     </div>
     <div class="panel">
-      <h3>Every rule we could set: waste vs margin <span class="muted">(120 rules, 3 seeds each)</span></h3>
-      <p class="hint">Each dot is one markdown rule applied to the whole store. Up-left is better: more margin, less waste. Discounting harder always cuts waste, but past a point it destroys margin. Press <b>Optimised per category</b> to see a rule that beats every single store-wide rule.</p>
+      <h3>Quick screen: every store-wide rule, waste vs margin <span class="muted">(120 rules × 3 seeds)</span></h3>
+      <p class="hint">Each dot is one markdown rule applied to the whole store. Up-left is better: more margin, less waste. Discounting harder always cuts waste, but past a point it destroys margin. Press <b>★ Recommended category rules</b> to see a rule that beats every single store-wide rule.<br><b>Evaluation stages:</b> quick screen here (3 seeds) → optimiser (10 seeds, <i>Optimiser</i> tab) → out-of-sample check (30 unseen seeds). The different seed counts are deliberate.</p>
       <div class="chart tall"><canvas id="cFrontier"></canvas></div>
     </div>
   </section>
@@ -179,7 +196,7 @@
 </footer>
 
 <script src="vendor/chart.umd.min.js"></script>
-<script src="js/sim.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/sim.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
 </body>
 </html>

@@ -38,6 +38,15 @@ Key decisions, experiments and rejected approaches, in order.
 - **Decision:** no passwords or real auth. The site is static (GitHub Pages) with no backend, so any client-side password would be fake security. The UI says so plainly. Real auth (e.g. a hosted identity provider) is a next step.
 - Bug found while testing: a `#role=staff` link was ignored because `render()` rewrote the URL hash before the role was read. The role is now read first.
 
+## UI review pass
+- An external UI/UX review rated the app 7.2/10. Main points: settings came before results, labels were technical, and "Publish to store" implied a real integration. Changes made:
+  - The first screen is now a compact strategy bar (3 presets plus the current rule in words). Sliders and scenario settings moved into a collapsible "Fine-tune" section, so the verdict and KPIs are visible straight away.
+  - Plain labels: Aggressive / Gentle discounts, ★ Recommended category rules, Customer response to discounts, Extra stock buffer (with "1.2× = 120% of expected demand"), Prevent selling below purchase cost, Simulation seed (advanced).
+  - "Publish this rule to the store" became "Save as store rule (demo)", and its messages say it is stored in this browser only.
+  - KPI cards: big current value, explicit "Fixed price" baseline, and an arrow, % and word (better / worse; revenue is shown neutrally as higher / lower, because more revenue can still mean less margin). The meaning no longer relies on colour alone.
+  - A one-line chart takeaway above the charts. The waste-vs-margin chart is labelled as the quick screen (3 seeds) and explains the evaluation stages: 3 → 10 → 30 unseen seeds.
+  - 15 px base font, tabs wrap on mobile (no hidden tabs), the header is not sticky on phones, visible keyboard focus outlines, and a clearer selected row in the heatmap.
+
 ## Results honesty
 - The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
 - I report lost sales (stock-outs) even though they get worse under markdowns.

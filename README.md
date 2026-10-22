@@ -18,9 +18,9 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 
 | Policy | Waste reduction vs fixed price | Margin change vs fixed price | Lost sales (empty shelf) |
 |---|---|---|---|
-| Naïve 20 / 40 / 50 % (2 days / 1 day / last day) | **−99.3 %** | **−20.0 %** ❌ | 111 → 530 |
+| Aggressive discounts 20 / 40 / 50 % (2 days / 1 day / last day) | **−99.3 %** | **−20.0 %** ❌ | 111 → 530 |
 | Gentle 0 / 20 / 40 % | −98.8 % | +4.9 % | 111 → 255 |
-| **Optimised per category** (my search) | **−79.5 %** | **+15.9 %** ✅ | 111 → 139 |
+| **★ Recommended category rules** (my optimiser) | **−79.5 %** | **+15.9 %** ✅ | 111 → 139 |
 
 **Out-of-sample check.** The optimiser only ever saw seeds 1–10. On 30 seeds it never saw (101–130), the optimised rules still cut waste by **81.3 %** and raised margin by **15.8 %**.
 
@@ -57,12 +57,12 @@ The app opens on a role picker, and each role sees only its own screens and acti
 
 | Role | Sees | Can do |
 |---|---|---|
-| 🧑‍💼 Store manager | Every tab | Change the rule, apply recommendations, **publish the rule to the store**, print labels |
-| 📊 Analyst | Dashboard, Per-product, Optimiser, Robustness, Assumptions | Explore scenarios, run the optimiser, export CSV. Can't apply or publish |
-| 🏷️ Shelf staff | Today's deals only, for the **published** rule | Print shelf labels |
+| 🧑‍💼 Store manager | Every tab | Change the rule, apply recommendations, **save the rule as the store rule (demo, this browser only)**, print labels |
+| 📊 Analyst | Dashboard, Per-product, Optimiser, Robustness, Assumptions | Explore scenarios, run the optimiser, export CSV. Can't apply or save the store rule |
+| 🏷️ Shelf staff | Today's deals only, for the **saved store rule** | Print shelf labels |
 | 🛒 Shopper | Today's deals only | Browse reduced items. No stock counts, costs or internal data |
 
-"Switch role" in the header changes role. A link can open straight into a role (e.g. `#role=staff`). The published rule is saved in the browser's `localStorage`. **There are no passwords:** this is a static prototype with no backend, so role views separate what each person sees but are not a security boundary. Real accounts would need a server-side auth provider.
+"Switch role" in the header changes role. A link can open straight into a role (e.g. `#role=staff`). The saved store rule is kept in the browser's `localStorage`. **There are no passwords:** this is a static prototype with no backend, so role views separate what each person sees but are not a security boundary. Real accounts would need a server-side auth provider.
 
 ## 4. Architecture
 
