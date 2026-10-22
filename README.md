@@ -36,7 +36,7 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 
 | Requirement | Where |
 |---|---|
-| **MVP 1:** simulator for one store, 20 perishables, 30 days, batches with expiry dates, demand depends on price and days to expiry, every assumption documented | `js/sim.js`, the [Assumptions](#5-assumptions) section and the in-app *Assumptions* tab |
+| **MVP 1:** simulator for one store, 20 perishables, 30 days, batches with expiry dates, demand depends on price and days to expiry, every assumption documented | `js/sim.js`, the [Assumptions](#5-assumptions) section and the in-app *To-do list* tab → "How the numbers are worked out" |
 | **MVP 2:** two policies, fixed price vs a markdown rule with adjustable thresholds | Sliders for the 2-day / 1-day / last-day discount, plus presets |
 | **MVP 3:** deployed dashboard; both policies on the same seed; units wasted, revenue, margin; per-product view of what was marked down and when | *Dashboard* and *Per-product* tabs (day × product heatmap, daily chart, comparison table) |
 | ⭐ Stretch: search for the best discount steps per category | *Optimiser* tab: grid search over 120 monotone rules × 10 seeds per category, optional waste penalty, out-of-sample check |
@@ -49,6 +49,7 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 | Extra: shareable scenario links (rule, seed and settings stored in the URL) | "Copy link to this exact scenario" button |
 | Extra: CSV export of per-product results for both policies | *Per-product* tab |
 | Extra: printable shelf-edge labels from the deals page | *Today's deals* → "Print shelf labels" |
+| Extra: **Staff to-do list**: a daily checklist in plain words (receive deliveries, price stickers, shelves to watch, items to remove at closing, tomorrow's delivery), with tick-off, WhatsApp copy and print | *To-do list* tab (assumptions folded underneath) |
 | Extra: **Recommended next steps** action planner. Every suggestion (switch pricing rule, soften markdowns on a category, order more or less of a product, pilot first, today's markdowns) is re-simulated on 10 seeds before it is shown and ranked by ₹ impact, with one-click Apply and a "Copy action plan" button | Dashboard, below the KPIs |
 
 ### Roles (demo sign-in)
@@ -58,8 +59,8 @@ The app opens on a role picker, and each role sees only its own screens and acti
 | Role | Sees | Can do |
 |---|---|---|
 | 🧑‍💼 Store manager | Every tab | Change the rule, apply recommendations, **save the rule as the store rule (demo, this browser only)**, print labels |
-| 📊 Analyst | Dashboard, Per-product, Optimiser, Robustness, Assumptions | Explore scenarios, run the optimiser, export CSV. Can't apply or save the store rule |
-| 🏷️ Shelf staff | Today's deals only, for the **saved store rule** | Print shelf labels |
+| 📊 Analyst | Dashboard, Per-product, Optimiser, Robustness, To-do list (incl. assumptions) | Explore scenarios, run the optimiser, export CSV. Can't apply or save the store rule |
+| 🏷️ Shelf staff | To-do list and Today's deals, for the **saved store rule** | Tick off daily tasks, print shelf labels |
 | 🛒 Shopper | Today's deals only | Browse reduced items. No stock counts, costs or internal data |
 
 "Switch role" in the header changes role. A link can open straight into a role (e.g. `#role=staff`). The saved store rule is kept in the browser's `localStorage`. **There are no passwords:** this is a static prototype with no backend, so role views separate what each person sees but are not a security boundary. Real accounts would need a server-side auth provider.

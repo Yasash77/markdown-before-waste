@@ -19,11 +19,11 @@
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="dash" data-roles="manager analyst">Dashboard</button>
+    <button class="tab" data-tab="assume" data-roles="manager analyst staff">✅ To-do list</button>
+    <button class="tab" data-tab="deals" data-roles="manager staff shopper">Today's deals</button>
     <button class="tab" data-tab="product" data-roles="manager analyst">Per-product</button>
     <button class="tab" data-tab="optim" data-roles="manager analyst">Optimiser</button>
     <button class="tab" data-tab="robust" data-roles="manager analyst">Robustness</button>
-    <button class="tab" data-tab="deals" data-roles="manager staff shopper">Today's deals</button>
-    <button class="tab" data-tab="assume" data-roles="manager analyst">Assumptions</button>
   </nav>
 </header>
 
@@ -36,7 +36,7 @@
     <div class="roles">
       <button class="role" data-role="manager"><span class="ri">🧑‍💼</span><b>Store manager</b><span>Sets markdown rules, applies recommendations, publishes the rule to the store. Full access.</span></button>
       <button class="role" data-role="analyst"><span class="ri">📊</span><b>Analyst</b><span>Explores scenarios, runs the optimiser, checks robustness, exports CSV. Can't publish or apply.</span></button>
-      <button class="role" data-role="staff"><span class="ri">🏷️</span><b>Shelf staff</b><span>Sees today's markdown list for the saved store rule and prints shelf labels.</span></button>
+      <button class="role" data-role="staff"><span class="ri">🏷️</span><b>Shelf staff</b><span>Gets today's to-do list (deliveries, price stickers, refills, end-of-day removals) and prints shelf labels.</span></button>
       <button class="role" data-role="shopper"><span class="ri">🛒</span><b>Shopper</b><span>Browses today's reduced items. No costs, stock or internal data.</span></button>
     </div>
     <p class="demo-note">Demo sign-in with no passwords. This is a static prototype: role views separate what each person sees, but they are not a security boundary.</p>
@@ -171,10 +171,22 @@
     </div>
   </section>
 
-  <!-- ASSUMPTIONS -->
+  <!-- STAFF TO-DO (replaces the old assumptions page; assumptions kept below for analysts) -->
   <section class="view" id="view-assume">
-    <div class="panel">
-      <h3>How the simulator works (one slide)</h3>
+    <div class="panel todo-panel">
+      <div class="row" style="justify-content:space-between;margin-bottom:4px">
+        <h3 style="margin:0">✅ Staff to-do list <span class="muted" id="todoDayLabel"></span></h3>
+        <div class="row" style="margin:0;gap:8px">
+          <label class="inline">Day <input type="range" id="todoDay" min="0" max="29" value="9" aria-label="Day of the month"></label>
+          <button class="chip" id="todoCopy">Copy for WhatsApp</button>
+          <button class="chip" id="todoPrint">🖨 Print</button>
+        </div>
+      </div>
+      <p class="hint" id="todoSummary"></p>
+      <div id="todo"></div>
+    </div>
+    <details class="panel howitworks">
+      <summary><b>How the numbers are worked out</b> <span class="muted">(assumptions, for analysts and judges)</span></summary>
       <ol class="flow">
         <li><b>Morning:</b> deliveries arrive (order-up-to 1.2× expected demand; same rule for both policies).</li>
         <li><b>Price:</b> each batch is priced by days to expiry using the rule.</li>
@@ -186,7 +198,7 @@
       <div class="tablewrap"><table class="data" id="assumeTable"></table></div>
       <h3>Product master</h3>
       <div class="tablewrap"><table class="data" id="masterTable"></table></div>
-    </div>
+    </details>
   </section>
 </main>
 
@@ -196,7 +208,7 @@
 </footer>
 
 <script src="vendor/chart.umd.min.js"></script>
-<script src="js/sim.js?v=5"></script>
-<script src="js/app.js?v=5"></script>
+<script src="js/sim.js?v=6"></script>
+<script src="js/app.js?v=6"></script>
 </body>
 </html>

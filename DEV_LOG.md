@@ -47,6 +47,15 @@ Key decisions, experiments and rejected approaches, in order.
   - A one-line chart takeaway above the charts. The waste-vs-margin chart is labelled as the quick screen (3 seeds) and explains the evaluation stages: 3 → 10 → 30 unseen seeds.
   - 15 px base font, tabs wrap on mobile (no hidden tabs), the header is not sticky on phones, visible keyboard focus outlines, and a clearer selected row in the heatmap.
 
+## Staff to-do list (replaces the Assumptions tab)
+- User feedback: the assumptions page was hard to act on. The tab is now a plain-language **daily to-do list** the manager can hand to staff. It is built from the simulated day under the current (or saved store) rule:
+  - Before opening: deliveries to receive, rotate stock, and which items get which reduced-price sticker.
+  - During the day: shelves likely to run empty (from simulated lost sales), and a check on the reduced shelf.
+  - At closing: items expected to be left over and expire, and the waste log.
+  - Tomorrow: the delivery to make room for.
+- Tasks can be ticked off (saved in this browser), copied as WhatsApp-ready text, or printed. The tab is visible to manager, analyst and shelf staff, and is the first screen for staff.
+- The full assumptions table is still there for judges and analysts, folded under "How the numbers are worked out".
+
 ## Results honesty
 - The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
 - I report lost sales (stock-outs) even though they get worse under markdowns.

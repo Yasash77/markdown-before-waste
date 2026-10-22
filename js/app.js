@@ -55,7 +55,17 @@
     $('over').addEventListener('input', (e) => { state.over = +e.target.value; schedule(); });
     $('floor').addEventListener('change', (e) => { state.floor = e.target.checked; schedule(); });
     $('pen').addEventListener('input', (e) => { state.penalty = +e.target.value; syncControls(); });
-    $('dealDay').addEventListener('input', renderDeals);
+    $('dealDay').addEventListener('input', () => { $('todoDay').value = $('dealDay').value; renderDeals(); renderTodo(); });
+    $('todoDay').addEventListener('input', () => { $('dealDay').value = $('todoDay').value; renderDeals(); renderTodo(); });
+    $('todoCopy').addEventListener('click', async (e) => {
+      try { await navigator.clipboard.writeText(todoText); e.target.textContent = 'Copied ✓'; } catch (err) { e.target.textContent = 'Copy failed'; }
+      setTimeout(() => { e.target.textContent = 'Copy for WhatsApp'; }, 2500);
+    });
+    $('todoPrint').addEventListener('click', () => {
+      document.body.classList.add('print-todo');
+      window.print();
+      setTimeout(() => document.body.classList.remove('print-todo'), 500);
+    });
     $('runOpt').addEventListener('click', () => runOptimiser());
     $('csvBtn').addEventListener('click', downloadCSV);
     document.querySelectorAll('.role').forEach(b => b.addEventListener('click', () => signIn(b.dataset.role)));
@@ -115,6 +125,7 @@
     renderSensitivity();
     renderSeeds(cmp);
     renderDeals();
+    renderTodo();
     schedulePlan();
   }
 
@@ -562,9 +573,9 @@
 
   // ---------- roles (demo sign-in, no passwords: views are not a security boundary) ----------
   const ROLES = {
-    manager: { label: 'Store manager', icon: '🧑‍💼', tabs: ['dash', 'product', 'optim', 'robust', 'deals', 'assume'], controls: true, apply: true, publish: true, print: true },
+    manager: { label: 'Store manager', icon: '🧑‍💼', tabs: ['dash', 'assume', 'deals', 'product', 'optim', 'robust'], controls: true, apply: true, publish: true, print: true },
     analyst: { label: 'Analyst', icon: '📊', tabs: ['dash', 'product', 'optim', 'robust', 'assume'], controls: true, apply: false, publish: false, print: false },
-    staff: { label: 'Shelf staff', icon: '🏷️', tabs: ['deals'], controls: false, apply: false, publish: false, print: true },
+    staff: { label: 'Shelf staff', icon: '🏷️', tabs: ['assume', 'deals'], controls: false, apply: false, publish: false, print: true },
     shopper: { label: 'Shopper', icon: '🛒', tabs: ['deals'], controls: false, apply: false, publish: false, print: false },
   };
   let role = null;
@@ -611,6 +622,87 @@
     if (!cfg.controls) useStoreRule(); else schedule();
   }
   function showLogin() { $('login').hidden = false; const b = document.querySelector('.role'); if (b) b.focus(); }
+
+  // ---------- staff to-do list (plain-language daily checklist from the simulation) ----------
+  let todoText = '';
+  function renderTodo() {
+    if (!last) return;
+    const d = +$('todoDay').value, r = last.rule, D = r.daily.length;
+    const wd = r.daily[d].weekday;
+    const n = (x) => `${x} unit${x === 1 ? '' : 's'}`;
+    const items = [];
+    const add = (sec, id, title, detail, list, who) => items.push({ sec, id, title, detail, list: list || [], who });
+    const byQty = (a, b) => b.q - a.q;
+
+    // Morning
+    const deliveries = r.products.map(p => ({ name: p.name, q: p.timeline[d].received })).filter(x => x.q > 0).sort(byQty);
+    if (deliveries.length) add('morning', 'receive', `Receive today's deliveries (${deliveries.length} products)`,
+      'Count each delivery against the list and put it in the cold room or on the shelf straight away.',
+      deliveries.map(x => `${x.name}: ${n(x.q)}`), 'Receiving');
+    add('morning', 'rotate', 'Put new stock at the back, older stock in front',
+      'Most shoppers take the item at the front. This one habit stops older stock from expiring on the shelf.', [], 'Shelf staff');
+    const deals = (r.deals[d] || []).slice().sort((a, b) => b.discount - a.discount);
+    if (deals.length) add('morning', 'stickers', `Put reduced-price stickers on ${deals.length} item${deals.length > 1 ? 's' : ''}`,
+      'Print the labels from the Today\'s deals tab. Stick them only on the older batch, not on fresh stock.',
+      deals.map(x => `${x.name}: ${n(x.units)} → ${inr(x.price)} (${pct(x.discount)} off, ${x.daysLeft === 0 ? 'expires today' : x.daysLeft === 1 ? 'expires tomorrow' : 'expires in ' + x.daysLeft + ' days'})`), 'Shelf staff');
+    else add('morning', 'stickers', 'No reduced-price stickers needed today', 'Nothing is close enough to its expiry date for a markdown under the current rule.', [], 'Shelf staff');
+
+    // During the day
+    const short = r.products.map(p => ({ name: p.name, q: p.timeline[d].lost })).filter(x => x.q > 0).sort(byQty);
+    if (short.length) add('day', 'refill', 'Watch these shelves: they may run empty today',
+      'Check at 1 pm and 5 pm. Refill from the back room; if there is none left, tell the manager so tomorrow\'s order can go up.',
+      short.map(x => `${x.name}: about ${x.q} shopper${x.q > 1 ? 's' : ''} may find it empty`), 'Shelf staff');
+    else add('day', 'refill', 'Quick shelf check at 1 pm and 5 pm', 'No shelf is expected to run empty today. Tidy the fronts and refill as usual.', [], 'Shelf staff');
+    if (deals.length) add('day', 'dealshelf', 'Check the reduced items at 5 pm',
+      'Make sure the stickers are still on and the reduced items sit at eye level, where evening shoppers will see them.', [], 'Shelf staff');
+
+    // Closing
+    const expiring = r.products.map(p => ({ name: p.name, q: p.timeline[d].wasted })).filter(x => x.q > 0).sort(byQty);
+    if (expiring.length) add('close', 'remove', 'Remove items that expire today',
+      'Take these off the shelf at closing. Do not leave expired food out for tomorrow.',
+      expiring.map(x => `${x.name}: about ${n(x.q)} left over`), 'Closing staff');
+    else add('close', 'remove', 'Check expiry dates at closing', 'Nothing is expected to be left over today, but still check every item that expires today.', [], 'Closing staff');
+    add('close', 'log', 'Write down everything thrown away',
+      'Item name and count in the waste log. The manager uses it to fix next week\'s orders.', [], 'Shift lead');
+
+    // Tomorrow
+    if (d + 1 < D) {
+      const tom = r.products.map(p => ({ name: p.name, q: p.timeline[d + 1].received })).filter(x => x.q > 0).sort(byQty);
+      if (tom.length) add('tomorrow', 'space', 'Make room for tomorrow\'s delivery',
+        `${tom.length} products arrive tomorrow morning. Biggest ones:`, tom.slice(0, 5).map(x => `${x.name}: ${n(x.q)}`), 'Shift lead');
+    }
+
+    // checked state (per seed + day), kept in this browser
+    const key = `mbw_todo_${state.seed}_${d}`;
+    let done = {};
+    try { done = JSON.parse(localStorage.getItem(key)) || {}; } catch (e) { done = {}; }
+    const SECS = { morning: ['🌅 Before opening', '7–9 am'], day: ['☀️ During the day', 'opening to 6 pm'], close: ['🌙 At closing', 'last hour'], tomorrow: ['📦 Get ready for tomorrow', 'before you leave'] };
+    let html = '', text = `Store to-do · Day ${d + 1} (${wd})\n`;
+    for (const sec of Object.keys(SECS)) {
+      const list = items.filter(i => i.sec === sec);
+      if (!list.length) continue;
+      html += `<div class="todo-sec">${SECS[sec][0]} <span class="when">${SECS[sec][1]}</span></div><ul class="todo-list">`;
+      text += `\n${SECS[sec][0]} (${SECS[sec][1]})\n`;
+      for (const it of list) {
+        const ck = !!done[it.id];
+        html += `<li class="todo-item ${ck ? 'done' : ''}"><input type="checkbox" data-id="${it.id}" ${ck ? 'checked' : ''} aria-label="${it.title}">
+          <div><div class="tt">${it.title}<span class="who-tag">${it.who}</span></div><div class="td">${it.detail}</div>
+          ${it.list.length ? '<ul>' + it.list.map(x => `<li>${x}</li>`).join('') + '</ul>' : ''}</div></li>`;
+        text += `${ck ? '✅' : '☐'} ${it.title} [${it.who}]\n` + it.list.map(x => `   • ${x}\n`).join('');
+      }
+      html += '</ul>';
+    }
+    $('todo').innerHTML = html;
+    todoText = text;
+    const nDone = items.filter(i => done[i.id]).length;
+    $('todoDayLabel').textContent = `· Day ${d + 1} (${wd})`;
+    $('todoSummary').innerHTML = `${items.length} tasks · <b>${nDone} done</b> · based on the ${role === 'staff' ? 'saved store rule' : 'current rule'} (<b>${policy().name}</b>) and the simulated day. Tick tasks off as you go; ticks are kept in this browser.`;
+    $('todo').querySelectorAll('input[type=checkbox]').forEach(cb => cb.addEventListener('change', () => {
+      done[cb.dataset.id] = cb.checked;
+      try { localStorage.setItem(key, JSON.stringify(done)); } catch (e) { /* storage blocked: ticks last for this view only */ }
+      renderTodo();
+    }));
+  }
 
   // ---------- static tables ----------
   function renderStatic() {
