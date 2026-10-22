@@ -1,0 +1,123 @@
+{
+  "trainSeeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "testSeeds": [
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130
+  ],
+  "optimised": {
+    "Bakery": {
+      "d2": 0,
+      "d1": 0,
+      "d0": 0.1
+    },
+    "Dairy": {
+      "d2": 0,
+      "d1": 0.1,
+      "d0": 0.2
+    },
+    "Produce": {
+      "d2": 0,
+      "d1": 0,
+      "d0": 0.2
+    },
+    "Meat & Fish": {
+      "d2": 0,
+      "d1": 0.1,
+      "d0": 0.2
+    },
+    "Ready meals": {
+      "d2": 0,
+      "d1": 0,
+      "d0": 0.2
+    }
+  },
+  "results": {
+    "Seeds 1–10 (used by the optimiser) | Naïve 20 / 40 / 50 %": {
+      "wasteReductionPct": 99.32651834034877,
+      "marginChangePct": -20.000825691789505,
+      "marginChange": {
+        "mean": -25676.5,
+        "sd": 3962.552081676656
+      }
+    },
+    "Seeds 1–10 (used by the optimiser) | Gentle 0 / 20 / 40 %": {
+      "wasteReductionPct": 98.80938063740228,
+      "marginChangePct": 4.900091293469555,
+      "marginChange": {
+        "mean": 6290.6,
+        "sd": 3911.665692373121
+      }
+    },
+    "Seeds 1–10 (used by the optimiser) | Optimised per category": {
+      "wasteReductionPct": 79.47083583884546,
+      "marginChangePct": 15.938577878314852,
+      "marginChange": {
+        "mean": 20461.5,
+        "sd": 3023.415719200903
+      }
+    },
+    "Seeds 101–130 (never seen by the optimiser) | Naïve 20 / 40 / 50 %": {
+      "wasteReductionPct": 99.24688657017839,
+      "marginChangePct": -20.608539492879906,
+      "marginChange": {
+        "mean": -26727.05,
+        "sd": 3152.334302982256
+      }
+    },
+    "Seeds 101–130 (never seen by the optimiser) | Gentle 0 / 20 / 40 %": {
+      "wasteReductionPct": 98.653651969034,
+      "marginChangePct": 4.146631587929694,
+      "marginChange": {
+        "mean": 5377.733333333334,
+        "sd": 3136.7601442091254
+      }
+    },
+    "Seeds 101–130 (never seen by the optimiser) | Optimised per category": {
+      "wasteReductionPct": 81.332043083137,
+      "marginChangePct": 15.796573654552581,
+      "marginChange": {
+        "mean": 20486.45,
+        "sd": 3463.011531615719
+      }
+    }
+  }
+}
