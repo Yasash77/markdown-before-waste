@@ -1,0 +1,12 @@
+{
+  "name": "markdown-before-waste",
+  "version": "1.0.0",
+  "description": "Near-expiry markdown pricing simulator for a grocery store (NexAI Hack 2026, PS 4.1)",
+  "license": "MIT",
+  "scripts": {
+    "test": "node tests/sim.test.js",
+    "evaluate": "node scripts/evaluate.js",
+    "start": "npx --yes http-server -p 8080 -c-1 ."
+  },
+  "engines": { "node": ">=18" }
+}
