@@ -126,6 +126,7 @@
     renderSeeds(cmp);
     renderDeals();
     renderTodo();
+    renderShop();
     schedulePlan();
   }
 
@@ -155,12 +156,50 @@
       kpi('Revenue', F.revenue, R.revenue, inrK, 'neutral', avg('revenue', inrK) + ' · judge with margin'),
       kpi('Lost sales (empty shelf)', F.lostSales, R.lostSales, n, 'lower', avg('lostSales', (x) => Math.round(x))),
     ].join('');
+    countUp($('kpis'));
     $('seedline').innerHTML = `30-day simulation · seed <b>${state.seed}</b> · big number = <b>${policy().name}</b>, “Fixed price” = baseline. ` +
       `Over 10 seeds: waste <b class="${c.wasteReductionPct >= 0 ? 'good' : 'bad'}">${sgn(-c.wasteReductionPct, (x) => x.toFixed(1) + '%')}</b>, ` +
       `margin <b class="${c.marginChange.mean >= 0 ? 'good' : 'bad'}">${sgn(c.marginChange.mean, inr)}</b> (${sgn(c.marginChangePct, (x) => x.toFixed(1) + '%')}, sd ${inr(c.marginChange.sd)}).`;
     const wDir = R.wasted <= F.wasted ? 'falls' : 'rises', mDir = R.margin >= F.margin ? 'rises' : 'falls';
     $('chartTakeaway').innerHTML = `<b>Takeaway (seed ${state.seed}):</b> waste ${wDir} from ${n(F.wasted)} to ${n(R.wasted)} units, and margin ${mDir} from ${inrK(F.margin)} to ${inrK(R.margin)}` +
       (wDir === 'falls' && mDir === 'falls' ? ', so this rule buys less waste with margin.' : wDir === 'falls' ? ', so this rule wins on both.' : '.');
+  }
+
+  // ---------- fun layer: count-up numbers and confetti (both respect reduced motion) ----------
+  let lastVerdict = null;
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function countUp(root) {
+    if (reduceMotion()) return;
+    root.querySelectorAll('.big').forEach(el => {
+      const m = el.textContent.match(/^([^0-9]*)([0-9][0-9,]*\.?[0-9]*)(.*)$/);
+      if (!m) return;
+      const [, pre, numStr, post] = m;
+      const target = parseFloat(numStr.replace(/,/g, '')); if (!isFinite(target)) return;
+      const dec = (numStr.split('.')[1] || '').length, grouped = numStr.includes(',');
+      const t0 = performance.now(), dur = 650;
+      const fmt = (v) => grouped ? v.toLocaleString('en-IN', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec);
+      const step = (t) => {
+        const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        el.textContent = pre + fmt(target * e) + post;
+        if (k < 1) requestAnimationFrame(step); else el.textContent = pre + numStr + post;
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  function confetti() {
+    if (reduceMotion()) return;
+    const cv = $('confetti'); if (!cv) return;
+    const ctx = cv.getContext('2d'); const W = cv.width = innerWidth, H = cv.height = innerHeight;
+    const cols = ['#1f8a5b', '#2fb37a', '#f5c75e', '#e6a23c', '#ffffff', '#ff8a65'];
+    const ps = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * W * .4, y: H * .35, vx: (Math.random() - .5) * 14, vy: -Math.random() * 14 - 4,
+      s: 5 + Math.random() * 6, c: cols[Math.floor(Math.random() * cols.length)], r: Math.random() * 6, vr: (Math.random() - .5) * .3 }));
+    const t0 = performance.now();
+    const frame = (t) => {
+      ctx.clearRect(0, 0, W, H);
+      ps.forEach(p => { p.vy += .35; p.x += p.vx; p.y += p.vy; p.r += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); ctx.restore(); });
+      if (t - t0 < 1800) requestAnimationFrame(frame); else ctx.clearRect(0, 0, W, H);
+    };
+    requestAnimationFrame(frame);
   }
 
   // ---------- plain-English verdict ----------
@@ -190,6 +229,8 @@
       cls = 'lose'; verdict = `❌ Worse than fixed price: waste ${sgn(-wr, (x) => x.toFixed(0) + '%')}, margin ${sgn(dmp, (x) => x.toFixed(1) + '%')}.`;
       body = 'This rule does not reduce waste. Check the per-product view to see why.';
     }
+    if (cls === 'win' && lastVerdict !== 'win') { confetti(); el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 500); }
+    lastVerdict = cls;
     el.className = 'insight ' + cls;
     el.innerHTML = `<div class="verdict">${verdict}</div><p>${body}</p>`;
   }
@@ -609,6 +650,8 @@
     role = r; const cfg = ROLES[r];
     try { sessionStorage.setItem('mbw_role', r); } catch (e) { /* storage blocked */ }
     document.body.dataset.role = r;
+    $('shop').hidden = r !== 'shopper';
+    if (r === 'shopper') { $('shopDay').value = $('dealDay').value; window.scrollTo(0, 0); }
     if (r === 'shopper') renderDeals();
     $('login').hidden = true;
     $('who').hidden = false; $('whoLabel').textContent = `${cfg.icon} ${cfg.label}`;
@@ -704,6 +747,140 @@
     }));
   }
 
+  // ---------- shopper storefront: "Fresh Finds" ----------
+  const EMOJI = { 'bread-white': '🍞', 'bread-brown': '🍞', pav: '🥯', croissant: '🥐', milk: '🥛', curd: '🥣', paneer: '🧀', yogurt: '🍦', cream: '🍶', batter: '🫓',
+    banana: '🍌', tomato: '🍅', spinach: '🥬', strawberry: '🍓', lettuce: '🥗', coriander: '🌿', chicken: '🍗', fish: '🐟', sandwich: '🥪', salad: '🥙' };
+  // Product ids that have a photo in img/products/<id>.jpg. Add an id here after adding its photo (keeps the console free of 404s).
+  const PHOTOS = new Set([]);
+  const CATSLUG = { 'Bakery': 'bakery', 'Dairy': 'dairy', 'Produce': 'produce', 'Meat & Fish': 'meat', 'Ready meals': 'ready' };
+  const shop = { cat: 'All', q: '', sort: 'value', basket: {}, items: [] };
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function pimg(x, big) {
+    // Real photo if img/products/<id>.jpg exists; otherwise a food emoji on a category tile.
+    return `<div class="pimg cat-${CATSLUG[x.category]}" ${big ? '' : `role="button" tabindex="0" data-qv="${x.key}" aria-label="View details for ${esc(x.name)}"`}>
+      ${PHOTOS.has(x.id) ? `<img src="img/products/${x.id}.jpg" alt="${esc(x.name)}" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0">` : ''}
+      <span class="emo" aria-hidden="true">${EMOJI[x.id] || '🛒'}</span>
+      ${big ? '' : `<span class="save-badge">SAVE ${Math.round(x.discount * 100)}%</span><span class="fresh-pill ${x.daysLeft === 0 ? 'today' : ''}">${freshText(x.daysLeft)}</span>`}
+    </div>`;
+  }
+  const freshText = (d) => d === 0 ? '⏰ Best before today' : d === 1 ? 'Best before tomorrow' : `Best before in ${d} days`;
+  function shopItems() {
+    const d = +$('shopDay').value;
+    return (last.rule.deals[d] || []).map(x => Object.assign({}, x, { key: `${x.id}_${x.daysLeft}`, saving: x.basePrice - x.price }));
+  }
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    clearTimeout(toast.tm); toast.tm = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+  function renderShop() {
+    if (!last || role !== 'shopper') return;
+    const d = +$('shopDay').value;
+    shop.items = shopItems();
+    // drop basket lines that no longer exist on this day, cap at shelf stock
+    for (const k of Object.keys(shop.basket)) { const it = shop.items.find(i => i.key === k); if (!it) delete shop.basket[k]; else shop.basket[k] = Math.min(shop.basket[k], it.units); }
+    $('shopDayLabel').textContent = `${last.rule.daily[d].weekday.toUpperCase()}, DAY ${d + 1}`;
+    // honest impact panel: today's real offer + this month's simulated effect of the store's rule
+    const units = shop.items.reduce((a, x) => a + x.units, 0);
+    const offer = shop.items.reduce((a, x) => a + x.units * x.saving, 0);
+    const wasteDelta = last.fixed.totals.wasted - last.rule.totals.wasted;
+    const wasteText = `${wasteDelta >= 0 ? 'fewer' : 'more'} items binned this month vs fixed prices*`;
+    $('shopImpact').innerHTML = `<div class="big">${units}</div><div class="lbl">near-date items reduced today across ${shop.items.length} deal${shop.items.length === 1 ? '' : 's'}</div>
+      <div class="row2"><div class="mini"><b>${inr(offer)}</b><span>off in total if they all find a home</span></div>
+      <div class="mini"><b>${Math.abs(Math.round(wasteDelta)).toLocaleString('en-IN')}</b><span>${wasteText}</span></div></div>
+      <div class="note">*Store simulation, synthetic data.</div>`;
+    // category chips with counts
+    const cats = ['All', ...Object.keys(S.CATEGORIES)];
+    $('shopCats').innerHTML = cats.map(c => { const n = c === 'All' ? shop.items.length : shop.items.filter(i => i.category === c).length;
+      return `<button class="cat-chip ${shop.cat === c ? 'on' : ''}" data-cat="${esc(c)}" aria-pressed="${shop.cat === c}">${c === 'All' ? 'All deals' : c}<span class="n">${n}</span></button>`; }).join('');
+    $('shopCats').querySelectorAll('.cat-chip').forEach(b => b.addEventListener('click', () => { shop.cat = b.dataset.cat; renderShop(); }));
+    // filter + sort
+    const q = shop.q.trim().toLowerCase();
+    let list = shop.items.filter(i => (shop.cat === 'All' || i.category === shop.cat) && (!q || i.name.toLowerCase().includes(q) || i.category.toLowerCase().includes(q)));
+    const sorters = { value: (a, b) => b.discount - a.discount || b.saving - a.saving, saving: (a, b) => b.saving - a.saving, soon: (a, b) => a.daysLeft - b.daysLeft || b.discount - a.discount, price: (a, b) => a.price - b.price };
+    list.sort(sorters[shop.sort]);
+    $('shopCount').textContent = `${list.length} deal${list.length === 1 ? '' : 's'}${shop.cat !== 'All' ? ' in ' + shop.cat : ''}${q ? ` matching “${shop.q}”` : ''}`;
+    if (!list.length) {
+      $('shopGrid').innerHTML = `<div class="shop-empty"><div class="e">🧺</div><p><b>No deals here right now.</b></p><p>${q || shop.cat !== 'All' ? 'Try another search or category.' : 'Nothing is close to its date today. Check back tomorrow!'}</p>
+        ${q || shop.cat !== 'All' ? '<button class="cat-chip" id="shopReset">Show all deals</button>' : ''}</div>`;
+      const r = $('shopReset'); if (r) r.addEventListener('click', () => { shop.cat = 'All'; shop.q = ''; $('shopSearch').value = ''; renderShop(); });
+    } else {
+      $('shopGrid').innerHTML = list.map((x, i) => {
+        const inB = shop.basket[x.key] || 0;
+        return `<article class="pcard" style="animation-delay:${Math.min(i, 12) * 35}ms">
+          ${pimg(x)}
+          <div class="pbody">
+            <span class="pcat">${x.category}</span>
+            <button class="pn" data-qv="${x.key}">${esc(x.name)}</button>
+            <div class="pprice"><span class="now">${inr(x.price)}</span><span class="was" aria-label="was ${inr(x.basePrice)}">${inr(x.basePrice)}</span></div>
+            <span class="psave">You save ${inr(x.saving)} (${Math.round(x.discount * 100)}%)</span>
+            <span class="pstock ${x.units <= 5 ? 'low' : ''}">${x.units <= 5 ? `Only ${x.units} left` : freshText(x.daysLeft)}</span>
+            <div class="pactions">${inB ? `<div class="stepper"><button data-dec="${x.key}" aria-label="One less ${esc(x.name)}">−</button><span>${inB} in basket</span><button data-inc="${x.key}" aria-label="One more ${esc(x.name)}" ${inB >= x.units ? 'disabled' : ''}>+</button></div>`
+              : `<button class="add-btn" data-inc="${x.key}">Add to basket</button>`}</div>
+          </div></article>`;
+      }).join('');
+    }
+    $('shopGrid').querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.inc, 1)));
+    $('shopGrid').querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.dec, -1)));
+    $('shopGrid').querySelectorAll('[data-qv]').forEach(b => {
+      b.addEventListener('click', () => openQV(b.dataset.qv));
+      b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openQV(b.dataset.qv); } });
+    });
+    renderBasket();
+  }
+  function changeQty(key, delta) {
+    const it = shop.items.find(i => i.key === key); if (!it) return;
+    const q = Math.max(0, Math.min(it.units, (shop.basket[key] || 0) + delta));
+    if (q) shop.basket[key] = q; else delete shop.basket[key];
+    if (delta > 0) { toast(`Added ${it.name} 🧺`); const bc = $('basketCount'); bc.classList.remove('bump'); void bc.offsetWidth; bc.classList.add('bump'); }
+    renderShop();
+    if (!$('quickView').hidden) openQV(key);
+  }
+  function renderBasket() {
+    const lines = Object.entries(shop.basket).map(([k, q]) => ({ it: shop.items.find(i => i.key === k), q })).filter(l => l.it);
+    const count = lines.reduce((a, l) => a + l.q, 0);
+    $('basketCount').textContent = count;
+    if (!lines.length) { $('basketBody').innerHTML = '<div class="shop-empty" style="padding:30px"><div class="e">🧺</div><p>Your basket is empty.</p><p>Add a deal to start rescuing good food.</p></div>'; return; }
+    const total = lines.reduce((a, l) => a + l.q * l.it.price, 0), saved = lines.reduce((a, l) => a + l.q * l.it.saving, 0);
+    $('basketBody').innerHTML = lines.map(l => `<div class="bline"><div class="be cat-${CATSLUG[l.it.category]}">${EMOJI[l.it.id] || '🛒'}</div>
+        <div><div class="bn">${esc(l.it.name)}</div><div class="bp">${l.q} × ${inr(l.it.price)} <s>${inr(l.it.basePrice)}</s></div></div>
+        <div class="stepper" style="min-height:40px"><button data-bdec="${l.it.key}" aria-label="One less">−</button><span>${l.q}</span><button data-binc="${l.it.key}" aria-label="One more" ${l.q >= l.it.units ? 'disabled' : ''}>+</button></div></div>`).join('') +
+      `<div class="btot"><div><span>Items</span><span>${count}</span></div><div class="saved"><span>You save</span><span>${inr(saved)}</span></div><div class="grand"><span>Total</span><span>${inr(total)}</span></div></div>
+       <div class="rescued">🌱 You're giving ${count} near-date item${count === 1 ? '' : 's'} a home instead of the bin.</div>
+       <button class="cat-chip" id="basketClear" style="margin-top:12px">Empty basket</button>
+       <p class="demo-note2">Demo basket in this browser only: no checkout, orders or payments.</p>`;
+    $('basketBody').querySelectorAll('[data-binc]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.binc, 1)));
+    $('basketBody').querySelectorAll('[data-bdec]').forEach(b => b.addEventListener('click', () => changeQty(b.dataset.bdec, -1)));
+    $('basketClear').addEventListener('click', () => { shop.basket = {}; renderShop(); });
+  }
+  function openQV(key) {
+    const x = shop.items.find(i => i.key === key); if (!x) return;
+    const inB = shop.basket[key] || 0;
+    $('qvBody').innerHTML = `${pimg(x, true)}<div class="qvb"><button class="shop-icon close" id="qvClose" aria-label="Close">✕</button>
+      <span class="pcat">${x.category}</span><h3>${esc(x.name)}</h3>
+      <div class="pprice"><span class="now">${inr(x.price)}</span><span class="was">${inr(x.basePrice)}</span></div>
+      <span class="psave">You save ${inr(x.saving)} (${Math.round(x.discount * 100)}% off)</span>
+      <span class="pstock ${x.units <= 5 ? 'low' : ''}">${freshText(x.daysLeft)}${x.units <= 5 ? ` · only ${x.units} left` : ''}</span>
+      <div class="why"><b>Why is it cheaper?</b> It's close to its best-before date but still good to eat. The store reduces it so it gets enjoyed instead of thrown away.</div>
+      ${inB ? `<div class="stepper"><button data-qdec aria-label="One less">−</button><span>${inB} in basket</span><button data-qinc aria-label="One more" ${inB >= x.units ? 'disabled' : ''}>+</button></div>` : '<button class="add-btn" data-qinc>Add to basket</button>'}
+    </div>`;
+    $('quickView').hidden = false;
+    $('qvClose').addEventListener('click', closeQV); $('qvClose').focus();
+    const inc = $('qvBody').querySelector('[data-qinc]'), dec = $('qvBody').querySelector('[data-qdec]');
+    if (inc) inc.addEventListener('click', () => changeQty(key, 1));
+    if (dec) dec.addEventListener('click', () => changeQty(key, -1));
+  }
+  function closeQV() { $('quickView').hidden = true; }
+  function bindShop() {
+    $('shopSearch').addEventListener('input', (e) => { shop.q = e.target.value; renderShop(); });
+    $('shopSort').addEventListener('change', (e) => { shop.sort = e.target.value; renderShop(); });
+    $('shopDay').addEventListener('input', () => { $('dealDay').value = $('shopDay').value; $('todoDay').value = $('shopDay').value; renderDeals(); renderTodo(); renderShop(); });
+    $('basketBtn').addEventListener('click', () => { $('basket').hidden = false; $('basketClose').focus(); });
+    $('basketClose').addEventListener('click', () => { $('basket').hidden = true; });
+    $('quickView').addEventListener('click', (e) => { if (e.target === $('quickView')) closeQV(); });
+    $('shopSwitch').addEventListener('click', showLogin);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeQV(); $('basket').hidden = true; } });
+  }
+
   // ---------- static tables ----------
   function renderStatic() {
     $('assumeTable').innerHTML = '<tr><th>Assumption</th><th style="text-align:left">Value and justification</th></tr>' +
@@ -713,7 +890,7 @@
   }
 
   // ---------- boot ----------
-  bindControls(); renderStatic();
+  bindControls(); bindShop(); renderStatic();
   const linkRole = new URLSearchParams(location.hash.slice(1)).get('role'); // read before render() rewrites the hash
   const fromLink = readHash();
   syncControls();

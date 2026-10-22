@@ -56,6 +56,14 @@ Key decisions, experiments and rejected approaches, in order.
 - Tasks can be ticked off (saved in this browser), copied as WhatsApp-ready text, or printed. The tab is visible to manager, analyst and shelf staff, and is the first screen for staff.
 - The full assumptions table is still there for judges and analysts, folded under "How the numbers are worked out".
 
+## "Wow" pass and a separate shopper storefront
+- Shoppers now get their own consumer UI, **Fresh Finds**, instead of a tab inside the analytics console. It uses a warm cream / fresh green / deal amber palette.
+- **What it does:** search, category chips with counts, 4 sort orders (best value, biggest ₹ saving, use soonest, price), a quick-view pop-up explaining why an item is cheaper, a demo basket (quantity capped at real shelf stock, total and "you save"), and an impact panel. Everything uses the same simulated deals as the staff view.
+- **Ethical-persuasion rules followed:** "Only N left" appears only when simulated stock is ≤ 5; best-before labels come from real batch expiry; no countdowns, ratings or invented social proof; the basket is labelled as a demo with no checkout.
+- **Photos:** the sandbox could not download images (image hosts blocked), and linking photos I couldn't check risked showing the wrong food. Cards therefore load `img/products/<id>.jpg` if present and otherwise show a large food emoji on a category-coloured tile. File names are in `img/products/PHOTOS.md`.
+- **Console polish:** gradient header, KPI count-up, confetti on a new win-win verdict, hover lifts, view fade-in, animated sign-in background. A `prefers-reduced-motion` rule turns all of it off.
+- Bug found while testing: the new product-name class collided with the heatmap's `.pname` cells, so it was renamed `.pn`.
+
 ## Results honesty
 - The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
 - I report lost sales (stock-outs) even though they get worse under markdowns.

@@ -49,6 +49,8 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 | Extra: shareable scenario links (rule, seed and settings stored in the URL) | "Copy link to this exact scenario" button |
 | Extra: CSV export of per-product results for both policies | *Per-product* tab |
 | Extra: printable shelf-edge labels from the deals page | *Today's deals* → "Print shelf labels" |
+| Extra: **"Fresh Finds" shopper storefront**: a separate consumer UI with hero banner, search, category chips, 4 sort orders, photo/emoji product cards with real savings and best-before dates, a quick-view pop-up, a demo basket ("you save ₹X") and an honest "good food rescued" panel. No fake urgency: stock counts and dates come from the simulation | Sign in as 🛒 Shopper |
+| Extra: console polish: gradient header, animated KPI count-up, confetti when the verdict turns win-win, hover lifts. All motion is switched off for users who prefer reduced motion | Manager / analyst views |
 | Extra: **Staff to-do list**: a daily checklist in plain words (receive deliveries, price stickers, shelves to watch, items to remove at closing, tomorrow's delivery), with tick-off, WhatsApp copy and print | *To-do list* tab (assumptions folded underneath) |
 | Extra: **Recommended next steps** action planner. Every suggestion (switch pricing rule, soften markdowns on a category, order more or less of a product, pilot first, today's markdowns) is re-simulated on 10 seeds before it is shown and ranked by ₹ impact, with one-click Apply and a "Copy action plan" button | Dashboard, below the KPIs |
 
