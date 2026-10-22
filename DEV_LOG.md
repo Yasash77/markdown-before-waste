@@ -64,6 +64,12 @@ Key decisions, experiments and rejected approaches, in order.
 - **Console polish:** gradient header, KPI count-up, confetti on a new win-win verdict, hover lifts, view fade-in, animated sign-in background. A `prefers-reduced-motion` rule turns all of it off.
 - Bug found while testing: the new product-name class collided with the heatmap's `.pname` cells, so it was renamed `.pn`.
 
+## Real photos, hover effects and light/dark mode
+- **Photos:** the sandbox can't reach image hosts, so I used the built-in browser on the user's machine to query the Wikimedia Commons API for each product. I picked openly licensed photos (CC0 / CC BY / CC BY-SA) and checked all 20 visually in a contact sheet before using them. URLs, authors and licences are in `js/photos.js`; credits are in the README (§11) and the storefront footer. Photos load straight from Commons; if one fails (offline, blocked network), the card falls back to its emoji tile.
+- **Hover effects:** photo zoom and saturation, a light sweep across the image, a wiggling save badge, a card lift, and photo headers on the staff deal cards.
+- **Light/dark toggle** (🌙 / ☀️) in both the console header and the storefront. The choice is saved in this browser; with no choice saved, the app follows the device setting. Charts are redrawn on toggle because they read colours from CSS variables. The storefront has its own dark palette.
+- Bug found while testing: in dark mode the active tab used dark-green text on a dark background. It now uses the theme's text colour.
+
 ## Results honesty
 - The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
 - I report lost sales (stock-outs) even though they get worse under markdowns.

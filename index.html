@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Markdown Before Waste</title>
   <meta name="description" content="Test near-expiry markdown rules on a simulated grocery store and see the trade-off between waste and margin.">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
 </head>
 <body>
 <header class="top">
@@ -16,6 +16,7 @@
       <p class="sub">Near-expiry pricing simulator · one store · 20 perishables · 30 days · <span class="tag">synthetic data</span></p>
     </div>
     <div class="who" id="who" hidden><span id="whoLabel"></span><button class="chip" id="switchRole">Switch role</button></div>
+    <button class="theme-btn" id="themeBtn" aria-label="Switch to dark mode" title="Light / dark mode">🌙</button>
   </div>
   <nav class="tabs" role="tablist">
     <button class="tab active" data-tab="dash" data-roles="manager analyst">Dashboard</button>
@@ -210,6 +211,7 @@
     <label class="shop-search"><span aria-hidden="true">🔍</span><input id="shopSearch" type="search" placeholder="Find bread, milk, fruit…" aria-label="Search today's deals"></label>
     <div class="shop-actions">
       <button class="shop-icon" id="basketBtn" aria-label="Open basket"><span aria-hidden="true">🧺</span><span class="bubble" id="basketCount">0</span></button>
+      <button class="theme-btn" id="shopTheme" aria-label="Switch to dark mode" title="Light / dark mode">🌙</button>
       <button class="shop-switch" id="shopSwitch">Switch role</button>
     </div>
   </header>
@@ -240,6 +242,7 @@
     <span>🌱 Prices come from the store simulation (synthetic data). The basket is a demo: no orders or payments.</span>
     <label>Preview day <input type="range" id="shopDay" min="0" max="29" value="9" aria-label="Preview day"></label>
   </footer>
+  <details class="credits"><summary>Photo credits</summary><p id="shopCredits"></p></details>
   <aside class="drawer" id="basket" hidden aria-label="Your basket">
     <div class="drawer-head"><h2>Your basket</h2><button class="shop-icon" id="basketClose" aria-label="Close basket">✕</button></div>
     <div id="basketBody"></div>
@@ -255,7 +258,8 @@
 </footer>
 
 <script src="vendor/chart.umd.min.js"></script>
-<script src="js/sim.js?v=7"></script>
-<script src="js/app.js?v=8"></script>
+<script src="js/sim.js?v=9"></script>
+<script src="js/photos.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>

@@ -606,7 +606,7 @@
     $('o_day').textContent = `Day ${d + 1} (${r.daily[d].weekday})`;
     const list = r.deals[d].slice().sort((a, b) => b.discount - a.discount);
     if (!list.length) { $('deals').innerHTML = '<div class="empty">No reduced items today with this rule.</div>'; return; }
-    $('deals').innerHTML = list.map(x => `<div class="deal"><span class="off">${pct(x.discount)} OFF</span>
+    $('deals').innerHTML = list.map(x => `<div class="deal">${(window.MBW_PHOTOS || {})[x.id] ? `<div class="dimg" style="background-image:url('${window.MBW_PHOTOS[x.id].url}')" role="img" aria-label="${x.name}"></div>` : ''}<span class="off">${pct(x.discount)} OFF</span>
       <div class="cat">${x.category}</div><div class="name">${x.name}</div>
       <div><span class="price">${inr(x.price)}</span><span class="was">${inr(x.basePrice)}</span></div>
       <div class="meta">${role === 'shopper' ? '' : x.units + ' on the shelf · '}${x.daysLeft === 0 ? 'best before today' : x.daysLeft === 1 ? 'best before tomorrow' : 'best before in ' + x.daysLeft + ' days'}</div></div>`).join('');
@@ -752,13 +752,15 @@
     banana: '🍌', tomato: '🍅', spinach: '🥬', strawberry: '🍓', lettuce: '🥗', coriander: '🌿', chicken: '🍗', fish: '🐟', sandwich: '🥪', salad: '🥙' };
   // Product ids that have a photo in img/products/<id>.jpg. Add an id here after adding its photo (keeps the console free of 404s).
   const PHOTOS = new Set([]);
+  const WEB = window.MBW_PHOTOS || {};
+  const photoUrl = (id) => PHOTOS.has(id) ? `img/products/${id}.jpg` : (WEB[id] && WEB[id].url) || '';
   const CATSLUG = { 'Bakery': 'bakery', 'Dairy': 'dairy', 'Produce': 'produce', 'Meat & Fish': 'meat', 'Ready meals': 'ready' };
   const shop = { cat: 'All', q: '', sort: 'value', basket: {}, items: [] };
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   function pimg(x, big) {
     // Real photo if img/products/<id>.jpg exists; otherwise a food emoji on a category tile.
     return `<div class="pimg cat-${CATSLUG[x.category]}" ${big ? '' : `role="button" tabindex="0" data-qv="${x.key}" aria-label="View details for ${esc(x.name)}"`}>
-      ${PHOTOS.has(x.id) ? `<img src="img/products/${x.id}.jpg" alt="${esc(x.name)}" loading="lazy" onerror="this.remove()" style="position:absolute;inset:0">` : ''}
+      ${photoUrl(x.id) ? `<img src="${photoUrl(x.id)}" alt="${esc(x.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"><span class="shade"></span>` : ''}
       <span class="emo" aria-hidden="true">${EMOJI[x.id] || '🛒'}</span>
       ${big ? '' : `<span class="save-badge">SAVE ${Math.round(x.discount * 100)}%</span><span class="fresh-pill ${x.daysLeft === 0 ? 'today' : ''}">${freshText(x.daysLeft)}</span>`}
     </div>`;
@@ -870,6 +872,33 @@
     if (dec) dec.addEventListener('click', () => changeQty(key, -1));
   }
   function closeQV() { $('quickView').hidden = true; }
+  // ---------- light / dark mode ----------
+  function effectiveTheme() {
+    const t = document.documentElement.dataset.theme;
+    if (t) return t;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function syncThemeButtons() {
+    const dark = effectiveTheme() === 'dark';
+    ['themeBtn', 'shopTheme'].forEach(id => { const b = $(id); if (b) { b.textContent = dark ? '☀️' : '🌙'; b.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode'); } });
+  }
+  function toggleTheme() {
+    const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('mbw_theme', next); } catch (e) { /* storage blocked */ }
+    syncThemeButtons();
+    render(); // charts read their colours from CSS variables
+  }
+  function initTheme() {
+    let t = null; try { t = localStorage.getItem('mbw_theme'); } catch (e) { t = null; }
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    syncThemeButtons();
+    $('themeBtn').addEventListener('click', toggleTheme);
+    $('shopTheme').addEventListener('click', toggleTheme);
+    $('shopCredits').innerHTML = Object.entries(WEB).map(([id, p]) => { const pr = S.PRODUCTS.find(x => x.id === id);
+      return `${esc(pr ? pr.name : id)}: <a href="${p.page}" target="_blank" rel="noopener">${esc(p.art)}</a>, ${esc(p.lic)}`; }).join(' · ') + ' (Wikimedia Commons).';
+  }
+
   function bindShop() {
     $('shopSearch').addEventListener('input', (e) => { shop.q = e.target.value; renderShop(); });
     $('shopSort').addEventListener('change', (e) => { shop.sort = e.target.value; renderShop(); });
@@ -890,7 +919,7 @@
   }
 
   // ---------- boot ----------
-  bindControls(); bindShop(); renderStatic();
+  initTheme(); bindControls(); bindShop(); renderStatic();
   const linkRole = new URLSearchParams(location.hash.slice(1)).get('role'); // read before render() rewrites the hash
   const fromLink = readHash();
   syncControls();

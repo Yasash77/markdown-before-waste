@@ -50,6 +50,7 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 | Extra: CSV export of per-product results for both policies | *Per-product* tab |
 | Extra: printable shelf-edge labels from the deals page | *Today's deals* → "Print shelf labels" |
 | Extra: **"Fresh Finds" shopper storefront**: a separate consumer UI with hero banner, search, category chips, 4 sort orders, photo/emoji product cards with real savings and best-before dates, a quick-view pop-up, a demo basket ("you save ₹X") and an honest "good food rescued" panel. No fake urgency: stock counts and dates come from the simulation | Sign in as 🛒 Shopper |
+| Extra: **light / dark mode toggle** (🌙 / ☀️), saved per browser and following the device setting by default; real product photos (Wikimedia Commons, credited in §11) with hover zoom | Header of every view |
 | Extra: console polish: gradient header, animated KPI count-up, confetti when the verdict turns win-win, hover lifts. All motion is switched off for users who prefer reduced motion | Manager / analyst views |
 | Extra: **Staff to-do list**: a daily checklist in plain words (receive deliveries, price stickers, shelves to watch, items to remove at closing, tomorrow's delivery), with tick-off, WhatsApp copy and print | *To-do list* tab (assumptions folded underneath) |
 | Extra: **Recommended next steps** action planner. Every suggestion (switch pricing rule, soften markdowns on a category, order more or less of a product, pilot first, today's markdowns) is re-simulated on 10 seeds before it is shown and ranked by ₹ impact, with one-click Apply and a "Copy action plan" button | Dashboard, below the KPIs |
@@ -159,3 +160,30 @@ None needed. The app has no backend and calls no external API. `.env.example` is
 | Yasash | Solo developer | [GitHub](https://github.com/Yasash77) |
 
 #NEXAI2026
+
+## 11. Photo credits
+
+Product photos in the shopper storefront load from Wikimedia Commons under the licences below (CC BY / CC BY-SA require attribution; CC0 does not). If a photo cannot load, the card falls back to an emoji tile.
+
+| Product | Author | Licence | Source |
+|---|---|---|---|
+| White bread loaf | Mike Finn | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Tin_Loaf_-_one_slash_in_the_crust.jpg) |
+| Brown bread loaf | Veganbaking.net | CC BY-SA 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Vegan_no-knead_whole_wheat_bread_loaf,_sliced,_September_2010.jpg) |
+| Pav buns (6) | Mokshjuneja | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Pav_-_Bun_Maska.jpg) |
+| Butter croissant | Herry Wibisono (herryway) | CC0 | [Commons](https://commons.wikimedia.org/wiki/File:Croissants_au_beurre_(18953292873).jpg) |
+| Toned milk 1 L | FreeFOODPhotos | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Milk_and_straw.jpg) |
+| Curd 400 g | Susan Slater | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Yoghurt_in_bowl_011715.jpg) |
+| Paneer 200 g | Sonja Pauen - Stanhopea | CC BY 2.0 de | [Commons](https://commons.wikimedia.org/wiki/File:Panir_Paneer_Indian_cheese_fresh.jpg) |
+| Flavoured yogurt | Famartin | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:2020-02-19_16_25_58_A_cup_of_Chobani_Greek_Yogurt_with_Strawberry_on_the_Bottom_before_being_mixed_in_the_Franklin_Farm_section_of_Oak_Hill,_Fairfax_County,_Virginia.jpg) |
+| Fresh cream 200 ml | Rhett Sutphin | CC BY 2.0 | [Commons](https://commons.wikimedia.org/wiki/File:Whipped_Cream.jpg) |
+| Idli/dosa batter 1 kg | SijiR | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Idli_Batter.JPG) |
+| Bananas (dozen) | Wilfredor | CC0 | [Commons](https://commons.wikimedia.org/wiki/File:Bunch_of_bananas_on_sale.jpg) |
+| Tomatoes 1 kg | Dmitry Makeev | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Red_tomatoes._img_05.jpg) |
+| Spinach bunch | Charipearl | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Fresh_Spinach_leaves.jpg) |
+| Strawberries 200 g | W.carter | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Still_life_with_strawberries_in_a_crystal_bowl.jpg) |
+| Iceberg lettuce | Rasbak | CC BY-SA 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Iceberg_lettuce_(IJssla_krop).jpg) |
+| Coriander bunch | Kpsudeep | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Bunches_of_coriander_leaves.jpg) |
+| Chicken curry cut 500 g | gran | CC BY 3.0 | [Commons](https://commons.wikimedia.org/wiki/File:Raw_chicken_thighs.jpg) |
+| Fish fillet 250 g | FULVIO_TOGNON | CC0 | [Commons](https://commons.wikimedia.org/wiki/File:Raw_salmon_fillets.jpg) |
+| Veg sandwich | Nags Viswanathan | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Vegetable_Sandwich_Mumbai-Style.jpg) |
+| Salad bowl | Vinayakpatil1981 | CC BY-SA 4.0 | [Commons](https://commons.wikimedia.org/wiki/File:Vegitarian_green_salad_from_india.jpg) |
