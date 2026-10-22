@@ -105,3 +105,25 @@ table.heat td .w { position: absolute; top: 2px; right: 2px; width: 6px; height:
 .callout { background: var(--rule-soft); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
 .flow li { margin: 4px 0; }
 footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px 20px 30px; }
+
+/* verdict box */
+.insight { border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; border: 1px solid var(--line); background: var(--panel); box-shadow: var(--shadow); }
+.insight .verdict { font-weight: 750; font-size: 16px; }
+.insight.win { background: var(--rule-soft); border-color: transparent; }
+.insight.trade { background: rgba(230,162,60,.14); border-color: transparent; }
+.insight.lose { background: rgba(217,58,58,.10); border-color: transparent; }
+.insight p { margin: 4px 0 0; font-size: 13.5px; }
+.share { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* print: only the shelf labels */
+@media print {
+  body * { visibility: hidden; }
+  #deals, #deals * { visibility: visible; }
+  #deals { position: absolute; left: 0; top: 0; width: 100%; grid-template-columns: repeat(3, 1fr); gap: 8mm; }
+  .deal { break-inside: avoid; border: 2px dashed #333; background: #fff; color: #000; padding: 6mm; }
+  .deal .off { background: #000; color: #fff; font-size: 14pt; }
+  .deal .price { font-size: 28pt; }
+  .deal .name { font-size: 14pt; }
+  .deal .meta, .deal .cat, .deal .was { color: #333; }
+}

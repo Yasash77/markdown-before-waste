@@ -18,6 +18,12 @@ Key decisions, experiments and rejected approaches, in order.
 5. **Cannibalisation is modelled explicitly** (50 % of regular shoppers take a markdown if one is on the shelf). Without it, any discount looks free and "discount everything" wins, which is the trap the PS warns about.
 6. Tried overstock 1.2 vs 1.3 and cannibalisation 0.35 vs 0.5. Kept 1.2 / 0.5 (the more conservative case for markdowns). The other values are exposed in the sensitivity panel.
 
+## Usability upgrades (after the MVP and stretch goals were done)
+- Added a plain-English verdict box. For a rule that cuts waste but loses margin, it reports the cost: ₹ of margin given up per unit of waste avoided (−Δmargin ÷ units saved, 10-seed means). This makes the trade-off concrete for a store manager.
+- Replaced the waste-rate KPI with "₹ thrown away (at cost)". Waste rate is still shown under it.
+- Scenario state (rule, seed, shopper response, overstock, cost floor, optimised on/off) is stored in the URL hash, so a judge can reopen the exact scenario from the demo.
+- CSV export of per-product results, and print CSS that turns the deals page into shelf-edge labels.
+
 ## Results honesty
 - The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
 - I report lost sales (stock-outs) even though they get worse under markdowns.

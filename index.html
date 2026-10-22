@@ -48,11 +48,13 @@
       <label>Overstock (order-up-to) <output id="o_over"></output><input type="range" id="over" min="1" max="1.5" step="0.05" value="1.2"></label>
       <label class="check"><input type="checkbox" id="floor"> Never price below cost</label>
       <p class="hint">Both policies run on the same seed and face the same shoppers. Seed is shown on every result so judges can reproduce it.</p>
+      <div class="share"><button class="chip" id="copyLink">🔗 Copy link to this exact scenario</button><span id="copyMsg" class="muted"></span></div>
     </div>
   </section>
 
   <!-- DASHBOARD -->
   <section class="view active" id="view-dash">
+    <div class="insight" id="insight" aria-live="polite"></div>
     <div class="kpis" id="kpis"></div>
     <p class="seedline" id="seedline"></p>
     <div class="grid2">
@@ -79,7 +81,7 @@
       <div class="chart"><canvas id="cProduct"></canvas></div>
     </div>
     <div class="panel">
-      <h3>Per-product comparison <span class="muted">(fixed price → your rule)</span></h3>
+      <div class="row" style="justify-content:space-between;margin-bottom:6px"><h3 style="margin:0">Per-product comparison <span class="muted">(fixed price → your rule)</span></h3><button class="chip" id="csvBtn">⬇ Download CSV</button></div>
       <div class="tablewrap"><table class="data" id="prodTable"></table></div>
     </div>
   </section>
@@ -118,6 +120,7 @@
     <div class="panel">
       <div class="row">
         <h3 style="margin:0">Today's deals</h3>
+        <button class="chip" id="printBtn">🖨 Print shelf labels</button>
         <label class="inline">Day <input type="range" id="dealDay" min="0" max="29" value="9"> <output id="o_day"></output></label>
       </div>
       <p class="hint">Shopper-facing page generated from the simulation for the chosen day: what is on the reduced shelf this morning.</p>

@@ -44,6 +44,11 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 | ⭐ Stretch: shopper-facing "today's deals" page | *Today's deals* tab: generated from the simulation for any day |
 | Extra: waste-vs-margin frontier of every store-wide rule | Scatter chart on the Dashboard |
 | Extra: cost-floor guardrail ("never price below cost") | Scenario controls |
+| Extra: plain-English verdict ("win–win" / "trade-off: ₹X of margin per unit of waste avoided") | Top of the Dashboard |
+| Extra: "₹ thrown away" KPI (value of binned stock at cost) | Dashboard KPIs |
+| Extra: shareable scenario links (rule, seed and settings stored in the URL) | "Copy link to this exact scenario" button |
+| Extra: CSV export of per-product results for both policies | *Per-product* tab |
+| Extra: printable shelf-edge labels from the deals page | *Today's deals* → "Print shelf labels" |
 
 ## 4. Architecture
 

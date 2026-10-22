@@ -57,6 +57,14 @@
     $('pen').addEventListener('input', (e) => { state.penalty = +e.target.value; syncControls(); });
     $('dealDay').addEventListener('input', renderDeals);
     $('runOpt').addEventListener('click', () => runOptimiser());
+    $('csvBtn').addEventListener('click', downloadCSV);
+    $('printBtn').addEventListener('click', () => window.print());
+    $('copyLink').addEventListener('click', async () => {
+      writeHash();
+      try { await navigator.clipboard.writeText(location.href); $('copyMsg').textContent = 'Link copied.'; }
+      catch (e) { $('copyMsg').textContent = location.href; }
+      setTimeout(() => { $('copyMsg').textContent = ''; }, 4000);
+    });
     document.querySelectorAll('.chip[data-preset]').forEach(b => b.addEventListener('click', () => {
       const p = b.dataset.preset;
       clearPresets();
@@ -87,7 +95,9 @@
     const rule = S.simulate(Object.assign({}, opts, { policy: policy(), seed: state.seed }));
     const cmp = S.compare(policy(), opts, SEEDS);
     last = { fixed, rule, cmp };
+    renderInsight(fixed, rule, cmp);
     renderKPIs(fixed, rule, cmp);
+    writeHash();
     renderDailyCharts(fixed, rule);
     renderFrontier();
     renderHeat(rule, fixed);
@@ -113,7 +123,7 @@
     const avg = (k, fmt) => `10-seed mean: ${fmt(c.fixed[k].mean)} → ${fmt(c.policy[k].mean)}`;
     $('kpis').innerHTML = [
       kpi('Units wasted', F.wasted, R.wasted, (x) => Math.round(x).toLocaleString('en-IN'), true, avg('wasted', (x) => Math.round(x))),
-      kpi('Waste rate (of units received)', F.wastePct, R.wastePct, (x) => pct(x, 1), true, avg('wastePct', (x) => pct(x, 1))),
+      kpi('₹ thrown away (at cost)', F.wasteCost, R.wasteCost, inrK, true, avg('wasteCost', inrK) + ` · waste rate ${pct(c.fixed.wastePct.mean, 1)} → ${pct(c.policy.wastePct.mean, 1)}`),
       kpi('Revenue', F.revenue, R.revenue, inrK, false, avg('revenue', inrK)),
       kpi('Margin (gross profit)', F.margin, R.margin, inrK, false, avg('margin', inrK)),
       kpi('Lost sales (empty shelf)', F.lostSales, R.lostSales, (x) => Math.round(x).toLocaleString('en-IN'), true, avg('lostSales', (x) => Math.round(x))),
@@ -121,6 +131,88 @@
     $('seedline').innerHTML = `Seed <b>${state.seed}</b> · struck-through = fixed price, bold = <b>${policy().name}</b>. ` +
       `Over 10 seeds: waste <b class="${c.wasteReductionPct >= 0 ? 'good' : 'bad'}">${sgn(-c.wasteReductionPct, (x) => x.toFixed(1) + '%')}</b>, ` +
       `margin <b class="${c.marginChange.mean >= 0 ? 'good' : 'bad'}">${sgn(c.marginChange.mean, inr)}</b> (${sgn(c.marginChangePct, (x) => x.toFixed(1) + '%')}, sd ${inr(c.marginChange.sd)}).`;
+  }
+
+  // ---------- plain-English verdict ----------
+  function renderInsight(f, r, c) {
+    const wr = c.wasteReductionPct, dm = c.marginChange.mean, dmp = c.marginChangePct;
+    const unitsSaved = c.fixed.wasted.mean - c.policy.wasted.mean;
+    const el = $('insight');
+    // per-product margin change on the current seed
+    const diffs = r.products.map((p, i) => ({ name: p.name, dm: p.margin - f.products[i].margin, dw: f.products[i].wasted - p.wasted }));
+    const top = diffs.filter(d => d.dm > 0).sort((a, b) => b.dm - a.dm).slice(0, 3);
+    const worst = diffs.slice().sort((a, b) => a.dm - b.dm)[0];
+    const name = policy().name;
+    let cls, verdict, body;
+    if (Math.abs(wr) < 0.5 && Math.abs(dmp) < 0.5) {
+      cls = ''; verdict = 'No change: this rule never marks anything down.';
+      body = 'Move a slider or pick a preset to test a markdown rule against fixed price.';
+    } else if (wr > 0 && dm >= 0) {
+      cls = 'win'; verdict = `✅ Win–win: waste ${sgn(-wr, (x) => x.toFixed(0) + '%')}, margin ${sgn(dmp, (x) => x.toFixed(1) + '%')} (${sgn(dm, inr)} a month).`;
+      body = `${name} saves about ${Math.round(unitsSaved)} units a month from the bin and earns more doing it, averaged over 10 seeds.` +
+        (top.length ? ` Biggest gains this run: ${top.map(t => `${t.name} (${sgn(t.dm, inr)})`).join(', ')}.` : '');
+    } else if (wr > 0 && dm < 0) {
+      const perUnit = unitsSaved > 0 ? -dm / unitsSaved : 0;
+      cls = 'trade'; verdict = `⚖️ Trade-off: waste ${sgn(-wr, (x) => x.toFixed(0) + '%')}, but margin ${sgn(dmp, (x) => x.toFixed(1) + '%')} (${sgn(dm, inr)} a month).`;
+      body = `You are paying about <b>${inr(perUnit)} of margin for every unit kept out of the bin</b>, mostly because full-price shoppers grab the discounted units.` +
+        (worst && worst.dm < 0 ? ` Hardest hit this run: ${worst.name} (${sgn(worst.dm, inr)}).` : '') + ' Try smaller, later discounts, or press <b>Optimised per category</b>.';
+    } else {
+      cls = 'lose'; verdict = `❌ Worse than fixed price: waste ${sgn(-wr, (x) => x.toFixed(0) + '%')}, margin ${sgn(dmp, (x) => x.toFixed(1) + '%')}.`;
+      body = 'This rule does not reduce waste. Check the per-product view to see why.';
+    }
+    el.className = 'insight ' + cls;
+    el.innerHTML = `<div class="verdict">${verdict}</div><p>${body}</p>`;
+  }
+
+  // ---------- shareable URL state ----------
+  function writeHash() {
+    const t = state.tiers;
+    const q = new URLSearchParams({ d2: Math.round(t.d2 * 100), d1: Math.round(t.d1 * 100), d0: Math.round(t.d0 * 100),
+      seed: state.seed, resp: state.resp, over: state.over, floor: state.floor ? 1 : 0, opt: state.byCategory ? 1 : 0 });
+    if (state.byCategory) q.set('cats', JSON.stringify(state.byCategory));
+    try { history.replaceState(null, '', '#' + q.toString()); } catch (e) { /* file:// or sandbox */ }
+  }
+  function readHash() {
+    const q = new URLSearchParams(location.hash.slice(1));
+    if (!q.has('seed')) return false;
+    const num = (k, d, lo, hi) => { const v = parseFloat(q.get(k)); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : d; };
+    state.tiers = { d2: num('d2', 20, 0, 70) / 100, d1: num('d1', 40, 0, 70) / 100, d0: num('d0', 50, 0, 70) / 100 };
+    state.seed = Math.round(num('seed', 42, 1, 99999)); state.resp = num('resp', 1, 0.25, 2); state.over = num('over', 1.2, 1, 1.5);
+    state.floor = q.get('floor') === '1';
+    $('seed').value = state.seed; $('resp').value = state.resp; $('over').value = state.over; $('floor').checked = state.floor;
+    if (q.has('cats')) {
+      try {
+        const categories = JSON.parse(q.get('cats'));
+        const names = Object.keys(S.CATEGORIES);
+        if (categories && names.every(name => {
+          const t = categories[name];
+          return t && ['d2', 'd1', 'd0'].every(k => Number.isFinite(t[k]) && t[k] >= 0 && t[k] <= 0.7) &&
+            t.d2 <= t.d1 && t.d1 <= t.d0;
+        })) {
+          state.byCategory = {};
+          names.forEach(name => { state.byCategory[name] = categories[name]; });
+          return true;
+        }
+      } catch (e) {
+        // Invalid shared category rules are ignored; the app still loads the base policy.
+      }
+    }
+    return q.get('opt') === '1' ? 'opt' : true;
+  }
+
+  // ---------- CSV export ----------
+  function downloadCSV() {
+    if (!last) return;
+    const rows = [['product', 'category', 'policy', 'seed', 'received', 'sold', 'sold_reduced', 'wasted', 'waste_rate', 'revenue_inr', 'purchase_cost_inr', 'waste_cost_inr', 'ending_stock', 'margin_inr', 'lost_sales']];
+    for (const [label, res] of [['fixed price', last.fixed], [policy().name, last.rule]]) {
+      for (const p of res.products) rows.push([p.name, p.category, label, state.seed, p.received, p.sold, p.markdownUnits, p.wasted,
+        p.wastePct.toFixed(4), p.revenue.toFixed(2), p.purchaseCost.toFixed(2), p.wasteCost.toFixed(2), p.endingStock, p.margin.toFixed(2), p.lostSales]);
+    }
+    const csv = rows.map(r => r.map(v => /[",\n]/.test(String(v)) ? '"' + String(v).replace(/"/g, '""') + '"' : v).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = `markdown-before-waste_seed${state.seed}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
   }
 
   // ---------- charts ----------
@@ -334,8 +426,12 @@
   }
 
   // ---------- boot ----------
-  bindControls(); syncControls(); renderStatic();
-  document.querySelector('.chip[data-preset="naive"]').classList.add('on');
+  bindControls(); renderStatic();
+  const fromLink = readHash();
+  syncControls();
+  const t0 = state.tiers;
+  if (t0.d2 === 0.2 && t0.d1 === 0.4 && t0.d0 === 0.5) document.querySelector('.chip[data-preset="naive"]').classList.add('on');
   render();
+  if (fromLink === 'opt') runOptimiser(true);
   window.__MBW_STATE = state; // for debugging in the console
 })();
