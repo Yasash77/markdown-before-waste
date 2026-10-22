@@ -3,7 +3,7 @@
 Key decisions, experiments and rejected approaches, in order.
 
 ## Problem choice
-- Picked **PS 4.1** (near-expiry markdown pricing): no dataset download or API key needed, so nothing can fail on the day. A static site deploys reliably, and the open design space (our own simulator) rewards clear thinking over compute.
+- Picked **PS 4.1** (near-expiry markdown pricing): no dataset download or API key needed, so nothing can fail on the day. A static site deploys reliably, and the open design space (my own simulator) rewards clear thinking over compute.
 
 ## Architecture
 - **One simulator file (`js/sim.js`) shared by the browser and Node.** The dashboard numbers and the README numbers come from the same code, so they cannot disagree.
@@ -19,9 +19,9 @@ Key decisions, experiments and rejected approaches, in order.
 6. Tried overstock 1.2 vs 1.3 and cannibalisation 0.35 vs 0.5. Kept 1.2 / 0.5 (the more conservative case for markdowns). The other values are exposed in the sensitivity panel.
 
 ## Results honesty
-- The optimiser searches only on seeds 1–10. We report a separate out-of-sample check on seeds 101–130.
-- We report lost sales (stock-outs) even though they get worse under markdowns.
-- The sensitivity grid includes one scenario where the optimised rule loses margin (−1.6 %), and we report it.
+- The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
+- I report lost sales (stock-outs) even though they get worse under markdowns.
+- The sensitivity grid includes one scenario where the optimised rule loses margin (−1.6 %), and I report it.
 
 ## Rejected approaches
 - **Price-elasticity curve on a single shelf price:** rejected because it can't represent "only the old batch is discounted", which is the whole point.
