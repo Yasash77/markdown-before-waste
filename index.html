@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Markdown Before Waste</title>
+  <meta name="description" content="Test near-expiry markdown rules on a simulated grocery store and see the trade-off between waste and margin.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">₹↓</div>
+    <div>
+      <h1>Markdown Before Waste</h1>
+      <p class="sub">Near-expiry pricing simulator · one store · 20 perishables · 30 days · <span class="tag">synthetic data</span></p>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="dash">Dashboard</button>
+    <button class="tab" data-tab="product">Per-product</button>
+    <button class="tab" data-tab="optim">Optimiser</button>
+    <button class="tab" data-tab="robust">Robustness</button>
+    <button class="tab" data-tab="deals">Today's deals</button>
+    <button class="tab" data-tab="assume">Assumptions</button>
+  </nav>
+</header>
+
+<main>
+  <!-- Controls shared by all tabs -->
+  <section class="panel controls" aria-label="Policy controls">
+    <div class="ctl-group">
+      <h3>Markdown rule <span class="muted">(your policy)</span></h3>
+      <div class="presets">
+        <button class="chip" data-preset="naive">Naïve 20 / 40 / 50 %</button>
+        <button class="chip" data-preset="gentle">Gentle 0 / 20 / 40 %</button>
+        <button class="chip" data-preset="optimised" id="presetOpt" title="Run the optimiser first">Optimised per category</button>
+      </div>
+      <label>2 days left <output id="o_d2"></output><input type="range" id="d2" min="0" max="70" step="5"></label>
+      <label>1 day left <output id="o_d1"></output><input type="range" id="d1" min="0" max="70" step="5"></label>
+      <label>Last day <output id="o_d0"></output><input type="range" id="d0" min="0" max="70" step="5"></label>
+      <p class="hint" id="ruleNote"></p>
+    </div>
+    <div class="ctl-group">
+      <h3>Scenario</h3>
+      <label>Random seed <input type="number" id="seed" min="1" max="99999" value="42"></label>
+      <label>Shopper response to discounts <output id="o_resp"></output><input type="range" id="resp" min="0.25" max="2" step="0.25" value="1"></label>
+      <label>Overstock (order-up-to) <output id="o_over"></output><input type="range" id="over" min="1" max="1.5" step="0.05" value="1.2"></label>
+      <label class="check"><input type="checkbox" id="floor"> Never price below cost</label>
+      <p class="hint">Both policies run on the same seed and face the same shoppers. Seed is shown on every result so judges can reproduce it.</p>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="view-dash">
+    <div class="kpis" id="kpis"></div>
+    <p class="seedline" id="seedline"></p>
+    <div class="grid2">
+      <div class="panel"><h3>Units wasted per day</h3><div class="chart"><canvas id="cWaste"></canvas></div></div>
+      <div class="panel"><h3>Cumulative margin (₹)</h3><div class="chart"><canvas id="cMargin"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <h3>Every rule we could set: waste vs margin <span class="muted">(120 rules, 3 seeds each)</span></h3>
+      <p class="hint">Each dot is one markdown rule applied to the whole store. Up-left is better: more margin, less waste. Discounting harder always cuts waste, but past a point it destroys margin. Press <b>Optimised per category</b> to see a rule that beats every single store-wide rule.</p>
+      <div class="chart tall"><canvas id="cFrontier"></canvas></div>
+    </div>
+  </section>
+
+  <!-- PER-PRODUCT -->
+  <section class="view" id="view-product">
+    <div class="panel">
+      <h3>What was marked down, and when <span class="muted">(your rule, current seed)</span></h3>
+      <p class="hint">Each cell is a day. Colour = deepest discount on the shelf that morning; the number = units sold at a markdown; a red dot = units thrown away at close. Click a row for its daily chart.</p>
+      <div class="heatwrap"><table class="heat" id="heat"></table></div>
+      <div class="legend" id="heatLegend"></div>
+    </div>
+    <div class="panel">
+      <h3 id="prodTitle">Product detail</h3>
+      <div class="chart"><canvas id="cProduct"></canvas></div>
+    </div>
+    <div class="panel">
+      <h3>Per-product comparison <span class="muted">(fixed price → your rule)</span></h3>
+      <div class="tablewrap"><table class="data" id="prodTable"></table></div>
+    </div>
+  </section>
+
+  <!-- OPTIMISER -->
+  <section class="view" id="view-optim">
+    <div class="panel">
+      <h3>Search for the best discount steps per category</h3>
+      <p class="hint">Grid search over every monotone rule (2-days ≤ 1-day ≤ last-day discount, steps of 10 %, 120 rules per category), each scored over 10 seeds (1–10). Objective: mean margin − waste penalty × units wasted.</p>
+      <div class="row">
+        <label>Waste penalty (₹ per unit thrown away, e.g. disposal + CSR) <output id="o_pen"></output><input type="range" id="pen" min="0" max="50" step="5" value="0"></label>
+        <button class="btn" id="runOpt">Run optimiser</button>
+        <span id="optStatus" class="muted"></span>
+      </div>
+      <div class="tablewrap"><table class="data" id="optTable"></table></div>
+      <div id="optOOS" class="callout" hidden></div>
+    </div>
+  </section>
+
+  <!-- ROBUSTNESS -->
+  <section class="view" id="view-robust">
+    <div class="panel">
+      <h3>Do the results survive when the assumptions change?</h3>
+      <p class="hint">Your current rule vs fixed price, averaged over 10 seeds, for every combination of shopper response and overstock. Cells show <b>waste reduction</b> / <b>margin change</b>.</p>
+      <div class="tablewrap"><table class="data sens" id="sensTable"></table></div>
+      <p class="hint" id="sensNote"></p>
+    </div>
+    <div class="panel">
+      <h3>Seed-by-seed (10 seeds, current settings)</h3>
+      <div class="chart"><canvas id="cSeeds"></canvas></div>
+    </div>
+  </section>
+
+  <!-- DEALS -->
+  <section class="view" id="view-deals">
+    <div class="panel">
+      <div class="row">
+        <h3 style="margin:0">Today's deals</h3>
+        <label class="inline">Day <input type="range" id="dealDay" min="0" max="29" value="9"> <output id="o_day"></output></label>
+      </div>
+      <p class="hint">Shopper-facing page generated from the simulation for the chosen day: what is on the reduced shelf this morning.</p>
+      <div class="deals" id="deals"></div>
+    </div>
+  </section>
+
+  <!-- ASSUMPTIONS -->
+  <section class="view" id="view-assume">
+    <div class="panel">
+      <h3>How the simulator works (one slide)</h3>
+      <ol class="flow">
+        <li><b>Morning:</b> deliveries arrive (order-up-to 1.2× expected demand; same rule for both policies).</li>
+        <li><b>Price:</b> each batch is priced by days to expiry using the rule.</li>
+        <li><b>Shoppers:</b> regular shoppers ~ Poisson(demand × weekday); discounts add bargain shoppers ~ Poisson(demand × weekday × sensitivity × discount).</li>
+        <li><b>Choice:</b> 50 % of regulars grab a markdown if there is one (cannibalisation); otherwise 60 % take the oldest unit, 40 % the freshest.</li>
+        <li><b>Close:</b> anything on its last day is thrown away at cost.</li>
+      </ol>
+      <h3>Every assumption</h3>
+      <div class="tablewrap"><table class="data" id="assumeTable"></table></div>
+      <h3>Product master</h3>
+      <div class="tablewrap"><table class="data" id="masterTable"></table></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Synthetic data generated by the simulator, not real store sales. Fixed seeds make every number reproducible.
+  Built for NexAI Hack 2026 · PS 4.1.
+</footer>
+
+<script src="vendor/chart.umd.min.js"></script>
+<script src="js/sim.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
