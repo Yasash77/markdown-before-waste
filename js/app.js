@@ -58,6 +58,12 @@
     $('dealDay').addEventListener('input', renderDeals);
     $('runOpt').addEventListener('click', () => runOptimiser());
     $('csvBtn').addEventListener('click', downloadCSV);
+    $('copyPlan').addEventListener('click', async (e) => {
+      try { await navigator.clipboard.writeText(planText); e.target.textContent = 'Copied ✓'; }
+      catch (err) { e.target.textContent = 'Copy failed'; }
+      setTimeout(() => { e.target.textContent = 'Copy action plan'; }, 2500);
+    });
+    $('dealDay').addEventListener('change', schedulePlan);
     $('printBtn').addEventListener('click', () => window.print());
     $('copyLink').addEventListener('click', async () => {
       writeHash();
@@ -106,6 +112,7 @@
     renderSensitivity();
     renderSeeds(cmp);
     renderDeals();
+    schedulePlan();
   }
 
   function kpi(label, from, to, fmt, goodWhenLower, avgText) {
@@ -359,6 +366,127 @@
       { label: 'Margin, fixed price', data: c.fixed.runs.map(r => Math.round(r.margin)), backgroundColor: css('--fixed') },
       { label: 'Margin, your rule', data: c.policy.runs.map(r => Math.round(r.margin)), backgroundColor: css('--rule') },
     ] }, options: baseOpts({ scales: { x: { ticks: { color: css('--muted') }, grid: { color: css('--line') } }, y: { ticks: { color: css('--muted'), callback: (v) => inrK(v) }, grid: { color: css('--line') } } } }) });
+  }
+
+  // ---------- recommended next steps (action planner) ----------
+  // Every suggestion is checked in the simulator (10 seeds) against the current setup before it is shown.
+  let planTimer = null, planText = '';
+  const planCache = { key: null, opt: null };
+  function schedulePlan() {
+    clearTimeout(planTimer);
+    $('actions').innerHTML = '<li class="muted">Updating suggestions…</li>';
+    planTimer = setTimeout(renderPlan, 350);
+  }
+  function optimisedTiers() {
+    const key = [state.resp, state.over, state.floor, state.penalty].join('|');
+    if (planCache.key !== key) {
+      const o = {};
+      for (const c of Object.keys(S.CATEGORIES)) o[c] = S.optimizeCategory(c, { seeds: SEEDS, wastePenalty: state.penalty, params: params() }).best.tiers;
+      planCache.key = key; planCache.opt = o;
+    }
+    return planCache.opt;
+  }
+  function renderPlan() {
+    if (!last) return;
+    const pol = policy(), P = params(), cmp = last.cmp;
+    const money = [], other = [];
+    const perMonth = (x) => sgn(x, inr) + '/mo';
+
+    // 1) A better pricing rule for the whole store
+    let opt = null;
+    if (!state.byCategory) {
+      opt = optimisedTiers();
+      const m = S.multiSeed({ policy: { name: 'opt', tiers: { d2: 0, d1: 0, d0: 0 }, byCategory: opt }, params: P }, SEEDS);
+      const gain = m.margin.mean - cmp.policy.margin.mean;
+      const dw = m.wasted.mean - cmp.policy.wasted.mean;
+      if (gain > 200) money.push({ icon: '🎯', pri: 'high', impact: gain,
+        title: 'Switch to the optimised per-category markdown rules',
+        detail: `${Object.entries(opt).map(([c, t]) => `${c} ${tierStr(t)}`).join(' · ')}. Units wasted ${dw <= 0 ? 'fall' : 'rise'} by ${Math.abs(Math.round(dw))} a month compared with your current rule.`,
+        btn: { label: 'Apply', fn: () => { state.byCategory = Object.assign({}, opt); clearPresets(); schedule(); } } });
+    }
+
+    // 2) Categories where the current rule earns less than fixed price
+    for (const c of Object.keys(S.CATEGORIES)) {
+      const prods = S.PRODUCTS.filter(p => p.category === c);
+      const a = S.multiSeed({ products: prods, policy: pol, params: P }, SEEDS);
+      const f = S.multiSeed({ products: prods, policy: S.FIXED, params: P }, SEEDS);
+      const d = a.margin.mean - f.margin.mean;
+      if (d < -300) {
+        const act = { icon: '✋', pri: 'warn', impact: -d, impLabel: perMonth(-d) + ' at stake',
+          title: `Soften markdowns on ${c}`,
+          detail: `Your rule earns ${inr(-d)} a month less than fixed price here, while saving ${Math.max(0, Math.round(f.wasted.mean - a.wasted.mean))} units from the bin. Shoppers who would pay full price are taking the discount.` };
+        if (opt) act.btn = { label: `Optimise ${c}`, fn: () => {
+          const by = {}; for (const k of Object.keys(S.CATEGORIES)) by[k] = (state.byCategory && state.byCategory[k]) || state.tiers;
+          by[c] = opt[c]; state.byCategory = by; clearPresets(); schedule(); } };
+        money.push(act);
+      }
+    }
+
+    // 3) Ordering: try stocking each product up to 1.0×–1.4× expected demand (other products unchanged)
+    const levels = [1.0, 1.1, 1.2, 1.3, 1.4], orderActs = [];
+    for (const prod of S.PRODUCTS) {
+      const run = (o) => S.multiSeed({ products: [Object.assign({}, prod, { overstock: o })], policy: pol, params: P }, SEEDS);
+      const cur = run(state.over);
+      let best = null;
+      for (const o of levels) {
+        if (Math.abs(o - state.over) < 1e-9) continue;
+        const r = run(o);
+        // Service-level guardrail: never trade margin for noticeably emptier shelves.
+        if (r.lostSales.mean > Math.max(cur.lostSales.mean * 1.5, cur.lostSales.mean + 10)) continue;
+        if (!best || r.margin.mean > best.r.margin.mean) best = { o, r };
+      }
+      const gain = best ? best.r.margin.mean - cur.margin.mean : 0;
+      if (gain > 250) {
+        const less = best.o < state.over;
+        orderActs.push({ icon: less ? '📦' : '🛒', pri: 'mid', impact: gain,
+          title: `${less ? 'Order less' : 'Order more'} ${prod.name}: stock up to ${best.o.toFixed(1)}× expected demand instead of ${state.over.toFixed(1)}×`,
+          detail: less
+            ? `Units wasted ${Math.round(cur.wasted.mean)} → ${Math.round(best.r.wasted.mean)} a month; empty-shelf lost sales ${Math.round(cur.lostSales.mean)} → ${Math.round(best.r.lostSales.mean)}.`
+            : `Empty-shelf lost sales ${Math.round(cur.lostSales.mean)} → ${Math.round(best.r.lostSales.mean)} a month; units wasted ${Math.round(cur.wasted.mean)} → ${Math.round(best.r.wasted.mean)}.` });
+      }
+    }
+    orderActs.sort((a, b) => b.impact - a.impact);
+    money.push(...orderActs.slice(0, 3));
+    money.sort((a, b) => b.impact - a.impact);
+
+    // 4) Is the result fragile? Re-test with shoppers responding half as strongly
+    const isMarkdown = pol.byCategory || pol.tiers.d0 > 0 || pol.tiers.d1 > 0 || pol.tiers.d2 > 0;
+    if (isMarkdown) {
+      const low = S.compare(pol, { params: params({ responseMult: 0.5 }) }, SEEDS);
+      if (low.marginChange.mean < 0) other.push({ icon: '🧪', pri: 'warn',
+        title: 'Pilot before rolling out to every category',
+        detail: `If shoppers respond only half as strongly to discounts, this rule changes margin by ${sgn(low.marginChangePct, (x) => x.toFixed(1) + '%')} against fixed price. Trial it on 1–2 categories for two weeks and compare waste and margin with the rest.` });
+      else other.push({ icon: '🛡️', pri: 'mid',
+        title: 'Holds up if shoppers react less than assumed',
+        detail: `Even at half the shopper response, this rule still cuts waste ${low.wasteReductionPct.toFixed(0)}% and changes margin by ${sgn(low.marginChangePct, (x) => x.toFixed(1) + '%')}. Safe to pilot store-wide.` });
+    }
+
+    // 5) Today's shop-floor task
+    const day = +$('dealDay').value, deals = last.rule.deals[day] || [];
+    if (deals.length) other.push({ icon: '🏷️', pri: 'mid',
+      title: `Today (day ${day + 1}, ${last.rule.daily[day].weekday}): mark down ${deals.length} batch${deals.length > 1 ? 'es' : ''}`,
+      detail: deals.slice().sort((a, b) => b.discount - a.discount).slice(0, 4).map(x => `${x.name} ${pct(x.discount)} off (${x.units} unit${x.units === 1 ? '' : 's'})`).join(', ') + (deals.length > 4 ? `, +${deals.length - 4} more` : '') + '.',
+      btn: { label: 'Shelf labels', fn: () => document.querySelector('.tab[data-tab="deals"]').click() } });
+
+    const acts = money.slice(0, 5).concat(other);
+    if (!money.length) acts.unshift({ icon: '✅', pri: 'high',
+      title: 'Your current setup is already the best the planner found',
+      detail: 'No pricing or ordering change it tested adds more than ₹250 a month. Keep this rule and review it monthly.' });
+
+    const ol = $('actions'); ol.innerHTML = '';
+    planText = `Markdown Before Waste: action plan (seed ${state.seed}, ${policy().name}; simulator estimates, 10-seed means, synthetic data)\n`;
+    acts.forEach((a, i) => {
+      const li = document.createElement('li');
+      li.className = 'act p-' + a.pri;
+      const imp = a.impact ? `<span class="imp">${a.impLabel || perMonth(a.impact)}</span>` : '';
+      li.innerHTML = `<div class="ic">${a.icon}</div><div><div class="t">${a.title}</div><div class="d">${a.detail}</div></div><div class="side">${imp}</div>`;
+      if (a.btn) {
+        const b = document.createElement('button'); b.className = 'chip'; b.textContent = a.btn.label;
+        b.addEventListener('click', a.btn.fn); li.querySelector('.side').appendChild(b);
+      }
+      ol.appendChild(li);
+      planText += `${i + 1}. ${a.title}${a.impact ? ` [${a.impLabel || perMonth(a.impact)}]` : ''}: ${a.detail}\n`;
+    });
   }
 
   // ---------- optimiser ----------

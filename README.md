@@ -49,6 +49,7 @@ There is no ready dataset for this. I built a store simulator, wrote down and ju
 | Extra: shareable scenario links (rule, seed and settings stored in the URL) | "Copy link to this exact scenario" button |
 | Extra: CSV export of per-product results for both policies | *Per-product* tab |
 | Extra: printable shelf-edge labels from the deals page | *Today's deals* → "Print shelf labels" |
+| Extra: **Recommended next steps** action planner. Every suggestion (switch pricing rule, soften markdowns on a category, order more or less of a product, pilot first, today's markdowns) is re-simulated on 10 seeds before it is shown and ranked by ₹ impact, with one-click Apply and a "Copy action plan" button | Dashboard, below the KPIs |
 
 ## 4. Architecture
 

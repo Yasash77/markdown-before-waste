@@ -127,3 +127,16 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px
   .deal .name { font-size: 14pt; }
   .deal .meta, .deal .cat, .deal .was { color: #333; }
 }
+
+/* recommended next steps */
+.actlist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.act { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.act .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; background: var(--chip); }
+.act.p-high .ic { background: var(--rule-soft); }
+.act.p-warn .ic { background: rgba(230,162,60,.22); }
+.act .t { font-weight: 650; }
+.act .d { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+.act .imp { font-weight: 700; font-size: 12.5px; padding: 2px 8px; border-radius: 99px; background: var(--rule-soft); color: var(--rule); white-space: nowrap; }
+.act .imp.neg { background: rgba(217,58,58,.12); color: var(--waste); }
+.act .side { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+@media (max-width: 640px) { .act { grid-template-columns: 30px 1fr; } .act .side { grid-column: 2; flex-direction: row; align-items: center; } }

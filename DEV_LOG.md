@@ -24,6 +24,15 @@ Key decisions, experiments and rejected approaches, in order.
 - Scenario state (rule, seed, shopper response, overstock, cost floor, optimised on/off) is stored in the URL hash, so a judge can reopen the exact scenario from the demo.
 - CSV export of per-product results, and print CSS that turns the deals page into shelf-edge labels.
 
+## Action planner ("Recommended next steps")
+- Turns results into ranked actions. Each candidate is re-simulated on seeds 1–10 against the current setup, and only changes worth more than ₹200–300 a month are shown.
+  - Pricing: switch to the optimised per-category rules.
+  - Category: soften markdowns where the rule earns less than fixed price.
+  - Ordering: for each product, try stocking up to 1.0–1.4× expected demand (needed a small per-product `overstock` override in `sim.js`).
+  - Risk: re-test at half the shopper response and advise a pilot if margin turns negative.
+  - Shop floor: today's markdown list, linked to the shelf labels.
+- **Guardrail added after testing:** the first version suggested "order less milk" (+₹6.5k) even though it raised empty-shelf lost sales 4×. That's bad advice for a staple, because the model doesn't price lost customer goodwill. Ordering tips are now rejected if lost sales rise more than 50% (or 10 units).
+
 ## Results honesty
 - The optimiser searches only on seeds 1–10. I report a separate out-of-sample check on seeds 101–130.
 - I report lost sales (stock-outs) even though they get worse under markdowns.

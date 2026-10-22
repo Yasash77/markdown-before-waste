@@ -177,7 +177,7 @@
           for (let k = 0; k < cadence; k++) expected += prod.demand * WEEKDAY[(wd + k) % 7];
           // Units that expire before the next delivery do not count as cover.
           const onHand = batches.reduce((s, b) => s + (b.expiry - d >= cadence ? b.qty : 0), 0);
-          const q = Math.max(0, Math.round(params.overstock * expected - onHand));
+          const q = Math.max(0, Math.round((prod.overstock || params.overstock) * expected - onHand)); // per-product override used by the action planner
           if (q > 0) {
             batches.push({ qty: q, expiry: d + prod.shelfLife - 1, arrival: d });
             st.received += q; st.purchaseCost += q * prod.unitCost; day.received = q;

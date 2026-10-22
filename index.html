@@ -57,6 +57,14 @@
     <div class="insight" id="insight" aria-live="polite"></div>
     <div class="kpis" id="kpis"></div>
     <p class="seedline" id="seedline"></p>
+    <section class="panel actions" aria-label="Recommended next steps">
+      <div class="row" style="justify-content:space-between;margin-bottom:4px">
+        <h3 style="margin:0">📋 Recommended next steps <span class="muted">(ranked by estimated ₹ impact)</span></h3>
+        <button class="chip" id="copyPlan">Copy action plan</button>
+      </div>
+      <p class="hint">Each step is tested in the simulator on 10 seeds against your current setup before it is shown. Ordering tips are only shown if empty-shelf lost sales rise by no more than 50% (or 10 units). Estimates use synthetic data, so pilot a change before rolling it out.</p>
+      <ol class="actlist" id="actions"><li class="muted">Working out suggestions…</li></ol>
+    </section>
     <div class="grid2">
       <div class="panel"><h3>Units wasted per day</h3><div class="chart"><canvas id="cWaste"></canvas></div></div>
       <div class="panel"><h3>Cumulative margin (₹)</h3><div class="chart"><canvas id="cMargin"></canvas></div></div>
@@ -153,7 +161,7 @@
 </footer>
 
 <script src="vendor/chart.umd.min.js"></script>
-<script src="js/sim.js"></script>
-<script src="js/app.js?v=2"></script>
+<script src="js/sim.js?v=3"></script>
+<script src="js/app.js?v=3"></script>
 </body>
 </html>
