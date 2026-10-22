@@ -134,8 +134,6 @@ None needed. The app has no backend and calls no external API. `.env.example` is
 
 | Name | Role | Contact |
 |---|---|---|
-| Yasash (VIT, Vellore) | _role_ | _LinkedIn / GitHub_ |
-| _Teammate 2_ | _role_ | |
-| _Teammate 3_ | _role_ | |
+| Yasash | Solo developer | — |
 
 #NEXAI2026
